@@ -2,6 +2,7 @@
 
 import asyncio
 import errno
+import resource
 
 
 class ConnectionFailed(Exception):
@@ -24,3 +25,8 @@ async def tcp_connect(host: str, port: int, timeout: float) -> tuple[asyncio.Str
                 raise ConnectionFailed('host unreachable', host, port)
             case _:
                 raise e
+
+
+def max_file_limit():
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))

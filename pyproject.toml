@@ -5,3 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "brutasse"
 version = "0.0.1"
+dependencies = [
+    "progressbar2",
+    "termcolor",
+    "aiohttp",
+]
