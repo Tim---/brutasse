@@ -51,13 +51,12 @@ class MyProgressBar(progressbar.ProgressBar):
         )
 
 
-async def progressbar_execute(coros: list[Coroutine[Any, Any, Any]], parallelism: int):
+async def progressbar_execute(coros: list[Coroutine[Any, Any, Any]], parallelism: int) -> AsyncGenerator[asyncio.Task[Any], None]:
     with MyProgressBar(len(coros)) as bar:
         async for fut in parallel_execute(coros, parallelism):
             try:
-                res = fut.result()
+                fut.result()
                 bar.move(bar.PENDING, bar.OK)
-                print(colored(str(res), 'green'))
-            except Exception as e:
+            except Exception:
                 bar.move(bar.PENDING, bar.ERROR)
-                print(colored(repr(e), 'red'))
+            yield fut
