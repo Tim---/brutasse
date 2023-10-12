@@ -9,4 +9,5 @@ dependencies = [
     "progressbar2",
     "termcolor",
     "aiohttp",
+    "asyncssh",
 ]
