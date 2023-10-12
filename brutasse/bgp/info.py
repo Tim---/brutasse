@@ -34,7 +34,7 @@ async def main() -> None:
     parser.add_argument('infile', type=argparse.FileType('r'))
     args = parser.parse_args()
     coros = [bgp_open_info(ip) for ip in get_ips(args.infile)]
-    async for fut in progressbar_execute(coros, 6000):
+    async for fut in progressbar_execute(coros, 500):
         try:
             res = fut.result()
             print(res)
