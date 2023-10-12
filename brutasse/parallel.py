@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import asyncio
-from typing import Any, Coroutine, AsyncGenerator
+from typing import TypeVar
+from collections.abc import Coroutine, AsyncGenerator
 import progressbar
 from termcolor import colored
 
+T = TypeVar('T')
 
-async def parallel_execute(coros: list[Coroutine[Any, Any, Any]], parallelism: int) -> AsyncGenerator[asyncio.Task[Any], Any]:
-    dltasks: set[asyncio.Task[Any]] = set()
+
+async def parallel_execute(coros: list[Coroutine[None, None, T]], parallelism: int) -> AsyncGenerator[asyncio.Task[T], None]:
+    dltasks: set[asyncio.Task[T]] = set()
     try:
         for coro in coros:
             if len(dltasks) >= parallelism:
@@ -51,7 +54,7 @@ class MyProgressBar(progressbar.ProgressBar):
         )
 
 
-async def progressbar_execute(coros: list[Coroutine[Any, Any, Any]], parallelism: int) -> AsyncGenerator[asyncio.Task[Any], None]:
+async def progressbar_execute(coros: list[Coroutine[None, None, T]], parallelism: int) -> AsyncGenerator[asyncio.Task[T], None]:
     with MyProgressBar(len(coros)) as bar:
         async for fut in parallel_execute(coros, parallelism):
             try:

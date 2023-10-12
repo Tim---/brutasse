@@ -3,19 +3,14 @@
 import asyncio
 import argparse
 import ipaddress
-from typing import TextIO
 from termcolor import colored
 from .proto import BgpStream, Open
-from ..utils import tcp_connect, ConnectionFailed
+from ..utils import tcp_connect, ConnectionFailed, ips_from_file
 from ..parallel import progressbar_execute
 
 
-def get_ips(file: TextIO) -> set[str]:
-    return {l.strip() for l in file}
-
-
-async def bgp_open_info(ip: str) -> str:
-    reader, writer = await tcp_connect(ip, 179, timeout=2)
+async def bgp_open_info(ip: str, port: int) -> str:
+    reader, writer = await tcp_connect(ip, port, timeout=2)
     stream = BgpStream(reader, writer)
     try:
         await stream.write_msg(Open(version=4, asn=65000, hold_time=90, bgp_id=ipaddress.IPv4Address('10.10.10.10'), opts=b''))
@@ -33,7 +28,7 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('infile', type=argparse.FileType('r'))
     args = parser.parse_args()
-    coros = [bgp_open_info(ip) for ip in get_ips(args.infile)]
+    coros = [bgp_open_info(ip, 179) for ip in ips_from_file(args.infile)]
     async for fut in progressbar_execute(coros, 500):
         try:
             res = fut.result()

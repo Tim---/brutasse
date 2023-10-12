@@ -2,7 +2,6 @@
 
 import yaml
 from pathlib import Path
-from typing import List
 from sqlalchemy import create_engine, URL, ForeignKey
 from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import INET
@@ -18,7 +17,7 @@ class Workspace(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
 
-    hosts: Mapped[List["Host"]] = relationship(back_populates="workspace")
+    hosts: Mapped[list["Host"]] = relationship(back_populates="workspace")
 
 
 class Host(Base):
@@ -29,7 +28,7 @@ class Host(Base):
     workspace_id: Mapped[int] = mapped_column(ForeignKey('workspaces.id'))
 
     workspace: Mapped["Workspace"] = relationship(back_populates="hosts")
-    services: Mapped[List["Service"]] = relationship(back_populates="host")
+    services: Mapped[list["Service"]] = relationship(back_populates="host")
 
 
 class Service(Base):

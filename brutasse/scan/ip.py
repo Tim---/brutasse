@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import asyncio
-from typing import Optional, Any
+from typing import Optional, AsyncGenerator
 from collections.abc import Generator
 
 
-Addr = tuple[str | Any, int]
-Pkt = tuple[str | Any, int, bytes]
+Addr = tuple[str, int]
+Pkt = tuple[str, int, bytes]
 
 
 class UdpScanProtocol(asyncio.DatagramProtocol):
@@ -32,7 +32,7 @@ async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Op
     await queue.put(None)
 
 
-async def scan(pkt_gen: Generator[Pkt, None, None], cooldown: float = 1):
+async def scan(pkt_gen: Generator[Pkt, None, None], cooldown: float = 1) -> AsyncGenerator[Pkt, None]:
     queue: asyncio.Queue[Optional[Pkt]] = asyncio.Queue()
 
     loop = asyncio.get_running_loop()

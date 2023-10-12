@@ -3,6 +3,8 @@
 import asyncio
 import errno
 import resource
+import contextlib
+from typing import TextIO
 
 
 class ConnectionFailed(Exception):
@@ -27,6 +29,15 @@ async def tcp_connect(host: str, port: int, timeout: float) -> tuple[asyncio.Str
                 raise e
 
 
+@contextlib.contextmanager
 def max_file_limit():
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
     resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+    try:
+        yield
+    finally:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (soft, hard))
+
+
+def ips_from_file(file: TextIO) -> set[str]:
+    return {l.strip() for l in file}
