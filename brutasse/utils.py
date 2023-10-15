@@ -6,6 +6,7 @@ import resource
 import contextlib
 from typing import TextIO
 from pyroute2 import NDB
+from collections.abc import Iterable
 
 
 class ConnectionFailed(Exception):
@@ -47,3 +48,11 @@ def ips_from_file(file: TextIO) -> set[str]:
 def get_default_interface() -> str:
     with NDB() as ndb:
         return ndb.interfaces[ndb.routes['default']['oif']]['ifname']
+
+
+def argunparse(long_options: dict[str, str], positional: Iterable[str]):
+    args: list[str] = []
+    for k, v in long_options.items():
+        args.extend([f'--{k}', v])
+    args.extend(positional)
+    return args

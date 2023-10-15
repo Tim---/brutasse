@@ -12,10 +12,7 @@ from ..scan import zmap
 async def scan_v2c(ranges: list[IPv4Network], rate: int, community: str) -> AsyncGenerator[IPv4Address, None]:
     payload = make_v2c_request(community)
     async for saddr, _ in zmap.udp_scan(ranges, rate, port=161, payload=payload):
-        try:
-            yield saddr
-        except Exception as e:
-            logging.error(e, exc_info=True)
+        yield saddr
 
 
 async def scan_v3(ranges: list[IPv4Network], rate: int) -> AsyncGenerator[tuple[IPv4Address, str], None]:
