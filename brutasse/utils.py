@@ -5,6 +5,7 @@ import errno
 import resource
 import contextlib
 from typing import TextIO
+from pyroute2 import NDB
 
 
 class ConnectionFailed(Exception):
@@ -41,3 +42,8 @@ def max_file_limit():
 
 def ips_from_file(file: TextIO) -> set[str]:
     return {l.strip() for l in file}
+
+
+def get_default_interface() -> str:
+    with NDB() as ndb:
+        return ndb.interfaces[ndb.routes['default']['oif']]['ifname']

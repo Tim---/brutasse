@@ -4,9 +4,11 @@ import json
 import asyncio
 from ipaddress import IPv4Address, IPv4Network
 from collections.abc import AsyncGenerator
+from ..utils import get_default_interface
 
 
 async def udp_scan(ranges: list[IPv4Network], rate: int, port: int, payload: bytes) -> AsyncGenerator[tuple[IPv4Address, bytes], None]:
+    interface = get_default_interface()
     args: list[str] = [
         '--probe-module',   'udp',
         '--target-port',    f'{port}',
@@ -15,6 +17,7 @@ async def udp_scan(ranges: list[IPv4Network], rate: int, port: int, payload: byt
         '--output-module',  'json',
         '--output-fields',  'saddr,data',
         '--output-filter',  f'success = 1 && repeat = 0 && sport = {port}',
+        '--interface',      interface,
         *map(str, ranges)
     ]
     proc = await asyncio.subprocess.create_subprocess_exec('zmap', *args, stdout=asyncio.subprocess.PIPE)

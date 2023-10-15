@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 
 import logging
-import asyncio
 from typing import AsyncGenerator
 from ipaddress import IPv4Network, IPv4Address
 from .proto import make_v2c_request, make_v3_request, parse_v3_vendor
 from ..scan import zmap
 
 
-async def scan_v2c(interface: str, ranges: list[IPv4Network], rate: int, community: str) -> AsyncGenerator[IPv4Address, None]:
+async def scan_v2c(ranges: list[IPv4Network], rate: int, community: str) -> AsyncGenerator[IPv4Address, None]:
     payload = make_v2c_request(community)
-    async for saddr, _ in zmap.udp_scan(interface, ranges, rate, port=161, payload=payload):
+    async for saddr, _ in zmap.udp_scan(ranges, rate, port=161, payload=payload):
         try:
             yield saddr
         except Exception as e:
             logging.error(e, exc_info=True)
 
 
-async def scan_v3(interface: str, ranges: list[IPv4Network], rate: int) -> AsyncGenerator[tuple[IPv4Address, str], None]:
+async def scan_v3(ranges: list[IPv4Network], rate: int) -> AsyncGenerator[tuple[IPv4Address, str], None]:
     payload = make_v3_request()
-    async for saddr, data in zmap.udp_scan(interface, ranges, rate, port=161, payload=payload):
+    async for saddr, data in zmap.udp_scan(ranges, rate, port=161, payload=payload):
         try:
             vendor_num = parse_v3_vendor(data)
             yield saddr, f'1.3.6.1.4.1.{vendor_num}'
