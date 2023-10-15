@@ -5,10 +5,14 @@ from pathlib import Path
 from sqlalchemy import create_engine, URL, ForeignKey
 from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import INET
+from typing import Type, TypeVar, Any
 
 
 class Base(DeclarativeBase):
     pass
+
+
+T = TypeVar('T', bound=Base)
 
 
 class Workspace(Base):
@@ -84,5 +88,16 @@ class Metasploit:
             database=prod['database'],
         )
 
+    def get_or_create(self, session: Session, model: Type[T], **kwargs: Any) -> T:
+        instance = session.query(model).filter_by(**kwargs).first()
+        if not instance:
+            instance = model(**kwargs)
+            session.add(instance)
+        return instance
 
-msfdb = Metasploit()
+    def get_or_create_host(self, session: Session, address: str) -> Host:
+        return self.get_or_create(session, Host, address=address, workspace_id=self.workspace_id)
+
+    def get_or_create_service(self, session: Session, host: Host, proto: str, port: int) -> Service:
+        # Note: do we care about hosts.service_count ?
+        return self.get_or_create(session, Service, host=host, proto=proto, port=port)

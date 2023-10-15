@@ -15,4 +15,5 @@ dependencies = [
     "pyasn1",
     "pyasn1-modules",
     "pyroute2",
+    "psycopg2",
 ]
