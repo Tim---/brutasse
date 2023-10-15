@@ -12,4 +12,6 @@ dependencies = [
     "asyncssh",
     "sqlalchemy",
     "pyyaml",
+    "pyasn1",
+    "pyasn1-modules",
 ]
