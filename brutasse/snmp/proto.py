@@ -11,11 +11,14 @@ def asn1_decode(raw: bytes, cls: Any) -> Any:
     return msg
 
 
-def make_v1_request(community: str) -> bytes:
+def make_varbind() -> rfc1157.VarBind:
     varbind = rfc1157.VarBind()
     varbind['name'] = '1.3.6.1.2.1.1.5.0'
     varbind['value']['simple']['empty'] = None
+    return varbind
 
+
+def make_v1_request(community: str) -> bytes:
     msg = rfc1157.Message()
     msg['version'] = 'version-1'
     msg['community'] = community
@@ -24,16 +27,12 @@ def make_v1_request(community: str) -> bytes:
     get_request['error-status'] = 'noError'
     get_request['error-index'] = 0
     get_request['variable-bindings'].clear()
-    get_request['variable-bindings'].append(varbind)
+    get_request['variable-bindings'].append(make_varbind())
 
     return encoder.encode(msg)
 
 
 def make_v2c_request(community: str) -> bytes:
-    varbind = rfc1157.VarBind()
-    varbind['name'] = '1.3.6.1.2.1.1.5.0'
-    varbind['value']['simple']['empty'] = None
-
     msg = rfc1901.Message()
     msg['version'] = 'version-2c'
     msg['community'] = community
@@ -42,7 +41,7 @@ def make_v2c_request(community: str) -> bytes:
     pdu['error-status'] = 'noError'
     pdu['error-index'] = 0
     pdu['variable-bindings'].clear()
-    pdu['variable-bindings'].append(varbind)
+    pdu['variable-bindings'].append(make_varbind())
     msg['data'] = pdu
 
     return encoder.encode(msg)
