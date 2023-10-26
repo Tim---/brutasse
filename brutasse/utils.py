@@ -7,6 +7,9 @@ import contextlib
 from typing import TextIO
 from pyroute2 import NDB
 from collections.abc import Iterable
+import ipaddress
+
+IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
 
 class ConnectionFailed(Exception):

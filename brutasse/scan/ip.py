@@ -2,11 +2,13 @@
 
 import asyncio
 from typing import Optional, AsyncGenerator
-from collections.abc import Generator
+from collections.abc import Iterable
+from typing import Any
+from ..utils import IPAddress
+import ipaddress
 
-
-Addr = tuple[str, int]
-Pkt = tuple[str, int, bytes]
+Addr = tuple[IPAddress, int]
+Pkt = tuple[IPAddress, int, bytes]
 
 
 class UdpScanProtocol(asyncio.DatagramProtocol):
@@ -16,15 +18,16 @@ class UdpScanProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         self.transport = transport
 
-    def datagram_received(self, data: bytes, addr: Addr) -> None:
+    def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
         ip, port = addr
+        ip = ipaddress.ip_address(ip)
         self.queue.put_nowait((ip, port, data))
 
     def connection_lost(self, exc: Exception | None) -> None:
         pass
 
 
-async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Optional[Pkt]], pkt_gen: Generator[Pkt, None, None], cooldown: float, delay: float = 0.001) -> None:
+async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Optional[Pkt]], pkt_gen: Iterable[Pkt], cooldown: float, delay: float = 0.001) -> None:
     for ip, port, data in pkt_gen:
         transport.sendto(data, (ip, port))
         await asyncio.sleep(delay)
@@ -32,7 +35,7 @@ async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Op
     await queue.put(None)
 
 
-async def scan(pkt_gen: Generator[Pkt, None, None], cooldown: float = 1) -> AsyncGenerator[Pkt, None]:
+async def scan(pkt_gen: Iterable[Pkt], cooldown: float = 1) -> AsyncGenerator[Pkt, None]:
     queue: asyncio.Queue[Optional[Pkt]] = asyncio.Queue()
 
     loop = asyncio.get_running_loop()
