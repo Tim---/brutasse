@@ -17,4 +17,5 @@ dependencies = [
     "pyroute2",
     "psycopg2",
     "pysnmp",
+    "click",
 ]

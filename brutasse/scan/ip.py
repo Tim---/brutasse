@@ -29,7 +29,7 @@ class UdpScanProtocol(asyncio.DatagramProtocol):
 
 async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Optional[Pkt]], pkt_gen: Iterable[Pkt], cooldown: float, delay: float = 0.001) -> None:
     for ip, port, data in pkt_gen:
-        transport.sendto(data, (ip, port))
+        transport.sendto(data, (str(ip), port))
         await asyncio.sleep(delay)
     await asyncio.sleep(cooldown)
     await queue.put(None)
