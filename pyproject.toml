@@ -19,3 +19,6 @@ dependencies = [
     "pysnmp",
     "click",
 ]
+
+[project.scripts]
+brutasse = "brutasse.cli:cli"
