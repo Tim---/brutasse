@@ -7,6 +7,7 @@ from typing import Any
 from collections.abc import AsyncIterable
 from .snmp.scan import scan_v3, scan_v2c
 from .tftp.scan import tftp_scan
+from .tftp.enum import enumerate_files
 from .msf.db import Metasploit
 
 
@@ -25,6 +26,19 @@ async def do_scan(workspace: str, port: int, scan_func: AsyncIterable[tuple[IPv4
 @click.group()
 def cli() -> None:
     pass
+
+
+@cli.command()
+def tftp_enum() -> None:
+    async def func():
+        msfdb = Metasploit('default')
+        files = ['running-config', 'startup-config']
+        with msfdb.session() as session:
+            services = msfdb.get_services_by_port(session, 'udp', 69)
+            addresses = [service.host.address for service in services]
+            for ip in addresses:
+                await enumerate_files(ip, files)
+    asyncio.run(func())
 
 
 @cli.group()

@@ -2,7 +2,7 @@
 
 import yaml
 from pathlib import Path
-from sqlalchemy import create_engine, URL, ForeignKey
+from sqlalchemy import create_engine, URL, ForeignKey, select, ScalarResult
 from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column
 from sqlalchemy.dialects.postgresql import INET
 from typing import Type, TypeVar, Any
@@ -101,3 +101,11 @@ class Metasploit:
     def get_or_create_service(self, session: Session, host: Host, proto: str, port: int) -> Service:
         # Note: do we care about hosts.service_count ?
         return self.get_or_create(session, Service, host=host, proto=proto, port=port)
+
+    def get_services_by_port(self, session: Session, proto: str, port: int) -> ScalarResult[Service]:
+        stmt = (
+            select(Service)
+            .where(Service.proto == proto)
+            .where(Service.port == port)
+        )
+        return session.execute(stmt).scalars()

@@ -8,6 +8,10 @@ from ..utils import get_default_interface, argunparse
 
 
 async def zmap_scan(options: dict[str, str], ranges: list[IPv4Network]) -> AsyncGenerator[dict[str, str], None]:
+    # TODO: we can't handle 100 kpps with this implementation.
+    # I guess we don't consume stdout quickly enough
+    # A solution would be to redirect the output to a temporary file and consume it slowly
+    # We can use --summary to properly detect the end of the scan
     interface = get_default_interface()
     base_options = {
         'output-module': 'json',
