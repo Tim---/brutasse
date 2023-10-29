@@ -5,11 +5,12 @@ from .proto import Pkt, ReadRequest, Error, Data
 from anyio import create_connected_udp_socket
 
 
-async def enumerate_files(ip: str, files: list[str], timeout: int = 1, retries: int = 1):
+async def enumerate_files(ip: str, files: list[str], timeout: int = 1, retries: int = 1, mode: str = 'netascii') -> tuple[str, list[str]]:
+    res: list[str] = []
     async with await create_connected_udp_socket(remote_host=ip, remote_port=69) as udp:
         for filename in files:
             for _ in range(retries + 1):
-                msg = Pkt(body=ReadRequest(filename=filename, mode='octet'))
+                msg = Pkt(body=ReadRequest(filename=filename, mode=mode))
                 await udp.send(msg.build())
 
                 try:
@@ -25,9 +26,10 @@ async def enumerate_files(ip: str, files: list[str], timeout: int = 1, retries: 
                 case Pkt(body=Error(code=code, msg=msg)):
                     pass
                 case Pkt(body=Data(block_num=block_num, data=data)):
-                    print(ip, filename)
+                    res.append(filename)
                     msg = Pkt(body=Error(code=0, msg='Plz stop'))
                     await udp.send(msg.build())
                 case _:
                     raise NotImplementedError(
                         f'Unexpected response {resp}')
+    return ip, res
