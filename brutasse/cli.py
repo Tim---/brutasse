@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
+import asyncio
 import click
 from ipaddress import IPv4Network, IPv4Address
 from typing import Any
 from collections.abc import AsyncIterable
+
+from termcolor import colored
+
+from brutasse.bgp.info import bgp_open_info
 from .snmp.scan import scan_v3, scan_v2c
 from .tftp.scan import tftp_scan
 from .tftp.enum import enumerate_files
 from .msf.db import Metasploit
 from .parallel import progressbar_execute
-from .utils import coro
+from .utils import ConnectionFailed, coro
 
 
 async def do_scan(workspace: str, port: int, scan_func: AsyncIterable[tuple[IPv4Address, Any]]) -> None:
@@ -43,6 +48,26 @@ async def tftp_enum() -> None:
                 ip, filenames = await fut
                 for filename in filenames:
                     print(ip, filename)
+            except Exception as e:
+                print(repr(e))
+
+
+@cli.command()
+@coro
+async def bgp_info() -> None:
+    msfdb = Metasploit('default')
+    with msfdb.session() as session:
+        services = msfdb.get_services_by_port(session, 'tcp', 179)
+        addresses = [service.host.address for service in services]
+        coros = [bgp_open_info(addr, 179) for addr in addresses]
+        async for fut in progressbar_execute(coros, 100):
+            try:
+                res = fut.result()
+                print(res)
+            except ConnectionFailed:
+                pass
+            except (asyncio.IncompleteReadError, ConnectionResetError, TimeoutError):
+                pass
             except Exception as e:
                 print(repr(e))
 
