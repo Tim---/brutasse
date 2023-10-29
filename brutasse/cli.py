@@ -5,9 +5,6 @@ import click
 from ipaddress import IPv4Network, IPv4Address
 from typing import Any
 from collections.abc import AsyncIterable
-
-from termcolor import colored
-
 from brutasse.bgp.info import bgp_open_info
 from .snmp.scan import scan_v3, scan_v2c
 from .tftp.scan import tftp_scan
