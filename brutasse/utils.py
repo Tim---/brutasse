@@ -4,10 +4,11 @@ import asyncio
 import errno
 import resource
 import contextlib
-from typing import TextIO
-from pyroute2 import NDB
-from collections.abc import Iterable
 import ipaddress
+import functools
+from typing import TextIO, ParamSpec, TypeVar
+from collections.abc import Iterable, Callable, Coroutine
+from pyroute2 import NDB
 
 IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
@@ -59,3 +60,14 @@ def argunparse(long_options: dict[str, str], positional: Iterable[str]):
         args.extend([f'--{k}', v])
     args.extend(positional)
     return args
+
+
+P = ParamSpec('P')
+T = TypeVar('T')
+
+
+def coro(func: Callable[P, Coroutine[None, None, T]]) -> Callable[P, T]:
+    @functools.wraps(func)
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
+        return asyncio.run(func(*args, **kwargs))
+    return wrapped
