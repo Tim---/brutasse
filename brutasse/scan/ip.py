@@ -35,7 +35,7 @@ async def producer(transport: asyncio.DatagramTransport, queue: asyncio.Queue[Op
     await queue.put(None)
 
 
-async def scan(pkt_gen: Iterable[Pkt], cooldown: float = 1) -> AsyncGenerator[Pkt, None]:
+async def udp_scan(pkt_gen: Iterable[Pkt], cooldown: float = 1) -> AsyncGenerator[Pkt, None]:
     queue: asyncio.Queue[Optional[Pkt]] = asyncio.Queue()
 
     loop = asyncio.get_running_loop()

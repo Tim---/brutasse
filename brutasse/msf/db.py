@@ -3,7 +3,7 @@
 import yaml
 from pathlib import Path
 from sqlalchemy import create_engine, URL, ForeignKey, select, ScalarResult
-from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column
+from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column, joinedload
 from sqlalchemy.dialects.postgresql import INET
 from typing import Type, TypeVar, Any
 
@@ -107,5 +107,6 @@ class Metasploit:
             select(Service)
             .where(Service.proto == proto)
             .where(Service.port == port)
+            .options(joinedload(Service.host))
         )
         return session.execute(stmt).scalars()

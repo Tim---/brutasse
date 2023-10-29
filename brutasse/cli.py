@@ -7,6 +7,7 @@ from typing import Any
 from collections.abc import AsyncIterable
 from brutasse.bgp.info import bgp_open_info
 from .snmp.scan import scan_v3, scan_v2c
+from .snmp.brute import brute
 from .tftp.scan import tftp_scan
 from .tftp.enum import enumerate_files
 from .msf.db import Metasploit
@@ -67,6 +68,19 @@ async def bgp_info() -> None:
                 pass
             except Exception as e:
                 print(repr(e))
+
+
+@cli.command()
+@coro
+async def snmp_brute() -> None:
+    communities = ['public', 'private', 'Public',
+                   'Private', 'ro', 'rw', 'RO', 'RW']
+    msfdb = Metasploit('default')
+    with msfdb.session() as session:
+        services = msfdb.get_services_by_port(session, 'udp', 161)
+        ips = [IPv4Address(service.host.address) for service in services]
+        async for ip, port, community in brute(ips, communities):
+            print(ip, port, community)
 
 
 @cli.group()
