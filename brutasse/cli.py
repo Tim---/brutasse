@@ -80,6 +80,12 @@ async def snmp_brute() -> None:
         services = msfdb.get_services_by_port(session, 'udp', 161)
         ips = [IPv4Address(service.host.address) for service in services]
         async for ip, port, community in brute(ips, communities):
+            host = msfdb.get_or_create_host(session, str(ip))
+            service = msfdb.get_or_create_service(session, host, 'udp', 161)
+            note = msfdb.get_or_create_note(
+                session, service, 'brutasse.snmp.community')
+            note.data = community
+            session.commit()
             print(ip, port, community)
 
 

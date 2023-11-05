@@ -46,6 +46,17 @@ class Service(Base):
     state: Mapped[str] = mapped_column()
 
     host: Mapped["Host"] = relationship(back_populates="services")
+    notes: Mapped[list["Note"]] = relationship(back_populates="service")
+
+
+class Note(Base):
+    __tablename__ = "notes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ntype: Mapped[str] = mapped_column()
+    service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
+    data: Mapped[str] = mapped_column()
+
+    service: Mapped["Service"] = relationship(back_populates="notes")
 
 
 class Metasploit:
@@ -110,3 +121,6 @@ class Metasploit:
             .options(joinedload(Service.host))
         )
         return session.execute(stmt).scalars()
+
+    def get_or_create_note(self, session: Session, service: Service, ntype: str) -> Note:
+        return self.get_or_create(session, Note, service=service, ntype=ntype)
