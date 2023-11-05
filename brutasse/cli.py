@@ -3,9 +3,10 @@
 import asyncio
 import click
 from ipaddress import IPv4Network, IPv4Address
-from typing import Any
+from typing import Any, cast
 from collections.abc import AsyncIterable
 from brutasse.bgp.info import bgp_open_info
+import json
 from .snmp.scan import scan_v3, scan_v2c
 from .snmp.brute import brute
 from .tftp.scan import tftp_scan
@@ -84,7 +85,12 @@ async def snmp_brute() -> None:
             service = msfdb.get_or_create_service(session, host, 'udp', 161)
             note = msfdb.get_or_create_note(
                 session, service, 'brutasse.snmp.community')
-            note.data = community
+            if not note.data:
+                data: set[str] = set()
+            else:
+                data = set(cast(list[str], json.loads(note.data)))
+            data.add(community)
+            note.data = json.dumps(list(data))
             session.commit()
             print(ip, port, community)
 
