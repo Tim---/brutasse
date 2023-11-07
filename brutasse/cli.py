@@ -7,7 +7,7 @@ from typing import Any, cast
 from collections.abc import AsyncIterable
 from brutasse.bgp.info import bgp_open_info
 import json
-from .snmp.scan import scan_v3, scan_v2c
+from .snmp.scan import scan_v1, scan_v2c, scan_v3
 from .snmp.brute import brute
 from .tftp.scan import tftp_scan
 from .tftp.enum import enumerate_files
@@ -100,6 +100,18 @@ async def snmp_brute() -> None:
 @cli.group()
 def scan() -> None:
     pass
+
+
+@scan.command()
+@click.option('--rate', type=int, default=10000)
+@click.option('--workspace', type=str, default='default')
+@click.option('--community', type=str, default='public')
+@click.argument('network', type=IPv4Network, nargs=-1, required=True)
+@coro
+async def snmpv1(network: list[IPv4Network], rate: int, workspace: str,
+                 community: str) -> None:
+    scan_it = scan_v1(network, rate, community)
+    await do_scan(workspace, 161, scan_it)
 
 
 @scan.command()

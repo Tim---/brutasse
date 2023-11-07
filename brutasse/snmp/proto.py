@@ -32,6 +32,11 @@ def make_v1_request(community: str) -> bytes:
     return encoder.encode(msg)
 
 
+def get_v1_community(raw: bytes) -> str:
+    msg = asn1_decode(raw, rfc1157.Message)
+    return str(msg['community'])
+
+
 def make_v2c_request(community: str) -> bytes:
     msg = rfc1901.Message()
     msg['version'] = 'version-2c'
