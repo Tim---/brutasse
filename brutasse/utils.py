@@ -11,18 +11,21 @@ from collections.abc import Iterable, Callable, Coroutine
 from pyroute2 import NDB
 
 IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+HostOrIP = str | IPAddress
 
 
 class ConnectionFailed(Exception):
-    def __init__(self, reason: str, ip: str, port: int):
+    def __init__(self, reason: str, ip: HostOrIP, port: int):
         super().__init__(f'Connection to {ip}:{port} failed ({reason})')
 
 
-async def tcp_connect(host: str, port: int, timeout: float) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+async def tcp_connect(host: IPAddress, port: int, timeout: float
+                      ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
     try:
-        return await asyncio.wait_for(asyncio.open_connection(host, port), timeout)
+        return await asyncio.wait_for(
+            asyncio.open_connection(str(host), port), timeout)
     except TimeoutError as e:
-        raise ConnectionFailed('timeout', host, port)
+        raise ConnectionFailed('timeout', host, port) from e
     except OSError as e:
         match e.errno:
             case errno.ENETUNREACH:

@@ -2,7 +2,7 @@
 
 import asyncio
 import click
-from ipaddress import IPv4Network, IPv4Address
+from ipaddress import IPv4Network, IPv4Address, ip_address
 from typing import Any, cast
 from collections.abc import AsyncIterable
 from brutasse.bgp.info import bgp_open_info
@@ -16,7 +16,8 @@ from .parallel import progressbar_execute
 from .utils import ConnectionFailed, coro
 
 
-async def do_scan(workspace: str, port: int, scan_func: AsyncIterable[tuple[IPv4Address, Any]]) -> None:
+async def do_scan(workspace: str, port: int,
+                  scan_func: AsyncIterable[tuple[IPv4Address, Any]]) -> None:
     msfdb = Metasploit(workspace)
     with msfdb.session() as session:
         async for addr, info in scan_func:
@@ -57,7 +58,7 @@ async def bgp_info() -> None:
     msfdb = Metasploit('default')
     with msfdb.session() as session:
         services = msfdb.get_services_by_port(session, 'tcp', 179)
-        addresses = [service.host.address for service in services]
+        addresses = [ip_address(service.host.address) for service in services]
         coros = [bgp_open_info(addr, 179) for addr in addresses]
         async for fut in progressbar_execute(coros, 100):
             try:
@@ -65,7 +66,8 @@ async def bgp_info() -> None:
                 print(res)
             except ConnectionFailed:
                 pass
-            except (asyncio.IncompleteReadError, ConnectionResetError, TimeoutError):
+            except (asyncio.IncompleteReadError, ConnectionResetError,
+                    TimeoutError):
                 pass
             except Exception as e:
                 print(repr(e))
@@ -106,7 +108,8 @@ def scan() -> None:
 @click.option('--community', type=str, default='public')
 @click.argument('network', type=IPv4Network, nargs=-1, required=True)
 @coro
-async def snmpv2c(network: list[IPv4Network], rate: int, workspace: str, community: str) -> None:
+async def snmpv2c(network: list[IPv4Network], rate: int, workspace: str,
+                  community: str) -> None:
     scan_it = scan_v2c(network, rate, community)
     await do_scan(workspace, 161, scan_it)
 
@@ -116,7 +119,8 @@ async def snmpv2c(network: list[IPv4Network], rate: int, workspace: str, communi
 @click.option('--workspace', type=str, default='default')
 @click.argument('network', type=IPv4Network, nargs=-1, required=True)
 @coro
-async def snmpv3(network: list[IPv4Network], rate: int, workspace: str) -> None:
+async def snmpv3(network: list[IPv4Network], rate: int, workspace: str
+                 ) -> None:
     scan_it = scan_v3(network, rate)
     await do_scan(workspace, 161, scan_it)
 
