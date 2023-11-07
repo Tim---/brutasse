@@ -76,12 +76,11 @@ async def bgp_info() -> None:
 @cli.command()
 @coro
 async def snmp_brute() -> None:
-    communities = ['public', 'private', 'Public',
-                   'Private', 'ro', 'rw', 'RO', 'RW']
+    communities = ['public', 'private']
     msfdb = Metasploit('default')
     with msfdb.session() as session:
         services = msfdb.get_services_by_port(session, 'udp', 161)
-        ips = [IPv4Address(service.host.address) for service in services]
+        ips = [ip_address(service.host.address) for service in services]
         async for ip, port, community in brute(ips, communities):
             host = msfdb.get_or_create_host(session, str(ip))
             service = msfdb.get_or_create_service(session, host, 'udp', 161)

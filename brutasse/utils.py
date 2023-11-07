@@ -4,13 +4,13 @@ import asyncio
 import errno
 import resource
 import contextlib
-import ipaddress
+from ipaddress import IPv4Address, IPv6Address, IPv6Network
 import functools
 from typing import TextIO, ParamSpec, TypeVar
 from collections.abc import Iterable, Callable, Coroutine
 from pyroute2 import NDB
 
-IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+IPAddress = IPv4Address | IPv6Address
 HostOrIP = str | IPAddress
 
 
@@ -74,3 +74,21 @@ def coro(func: Callable[P, Coroutine[None, None, T]]) -> Callable[P, T]:
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         return asyncio.run(func(*args, **kwargs))
     return wrapped
+
+
+mapped = IPv6Network('::ffff:0:0/96')
+
+
+def ip_to_ipv6(ip: IPAddress) -> IPv6Address:
+    match ip:
+        case IPv4Address():
+            return mapped[int(ip)]
+        case IPv6Address():
+            return ip
+
+
+def ipv6_to_ip(ip: IPv6Address) -> IPAddress:
+    if ip in mapped:
+        return IPv4Address(int(ip) - int(mapped.network_address))
+    else:
+        return ip
