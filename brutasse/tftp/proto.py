@@ -16,9 +16,17 @@ class Msg:
 
     @classmethod
     def parse(cls, raw: bytes) -> Self:
-        raise NotImplementedError
+        op, = struct.unpack('!H', raw[:2])
+        return cls.repo[op].parse_msg(raw[2:])
 
     def build(self) -> bytes:
+        return struct.pack('!H', self.type_id) + self.build_msg()
+
+    @classmethod
+    def parse_msg(cls, raw: bytes) -> Self:
+        raise NotImplementedError
+
+    def build_msg(self) -> bytes:
         raise NotImplementedError
 
 
@@ -28,12 +36,12 @@ class ReadRequest(Msg, type_id=1):
     mode: str
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse_msg(cls, raw: bytes) -> Self:
         filename, mode, rest = raw.split(b'\0')
         assert not rest
         return cls(filename.decode(), mode.decode())
 
-    def build(self) -> bytes:
+    def build_msg(self) -> bytes:
         return f'{self.filename}\0{self.mode}\0'.encode()
 
 
@@ -43,12 +51,12 @@ class WriteRequest(Msg, type_id=2):
     mode: str
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse_msg(cls, raw: bytes) -> Self:
         filename, mode, rest = raw.split(b'\0')
         assert not rest
         return cls(filename.decode(), mode.decode())
 
-    def build(self) -> bytes:
+    def build_msg(self) -> bytes:
         return f'{self.filename}\0{self.mode}\0'.encode()
 
 
@@ -58,11 +66,11 @@ class Data(Msg, type_id=3):
     data: bytes
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse_msg(cls, raw: bytes) -> Self:
         block_num, = struct.unpack('!H', raw[:2])
         return cls(block_num, raw[2:])
 
-    def build(self) -> bytes:
+    def build_msg(self) -> bytes:
         return struct.pack('!H', self.block_num) + self.data
 
 
@@ -71,11 +79,11 @@ class Ack(Msg, type_id=4):
     block_num: int
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse_msg(cls, raw: bytes) -> Self:
         block_num, = struct.unpack('!H', raw)
         return cls(block_num)
 
-    def build(self) -> bytes:
+    def build_msg(self) -> bytes:
         return struct.pack('!H', self.block_num)
 
 
@@ -85,25 +93,11 @@ class Error(Msg, type_id=5):
     msg: str
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse_msg(cls, raw: bytes) -> Self:
         code, = struct.unpack('!H', raw[:2])
         msg = raw[2:]
         assert msg[-1] == 0
         return cls(code, msg[:-1].decode())
 
-    def build(self) -> bytes:
+    def build_msg(self) -> bytes:
         return struct.pack('!H', self.code) + f'{self.msg}\0'.encode()
-
-
-@dataclass
-class Pkt:
-    body: Msg
-
-    @classmethod
-    def parse(cls, raw: bytes) -> Self:
-        op, = struct.unpack('!H', raw[:2])
-        body = Msg.repo[op].parse(raw[2:])
-        return cls(body=body)
-
-    def build(self) -> bytes:
-        return struct.pack('!H', self.body.type_id) + self.body.build()
