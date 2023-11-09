@@ -18,8 +18,8 @@ class UdpScanProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         self.transport = transport
 
-    def datagram_received(self, data: bytes, addr: tuple[str | Any, int, int, int]
-                          ) -> None:
+    def datagram_received(self, data: bytes,
+                          addr: tuple[str | Any, int, int, int]) -> None:
         ip, port, _, _ = addr
         ip = ipv6_to_ip(IPv6Address(ip))
         self.queue.put_nowait((ip, port, data))
