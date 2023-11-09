@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import struct
+import enum
 from dataclasses import dataclass
 from typing import Self, Any
 
@@ -87,9 +88,20 @@ class Ack(Msg, type_id=4):
         return struct.pack('!H', self.block_num)
 
 
+class ErrorCode(enum.IntEnum):
+    NOT_DEFINED = 0
+    FILE_NOT_FOUND = 1
+    ACCESS_VIOLATION = 2
+    DISK_FULL = 3
+    ILLEGAL_OPERATION = 4
+    UNKNOWN_TRANSFER_ID = 5
+    FILE_EXISTS = 6
+    NO_SUCH_USER = 7
+
+
 @dataclass
 class Error(Msg, type_id=5):
-    code: int
+    code: ErrorCode
     msg: str
 
     @classmethod
@@ -97,7 +109,7 @@ class Error(Msg, type_id=5):
         code, = struct.unpack('!H', raw[:2])
         msg = raw[2:]
         assert msg[-1] == 0
-        return cls(code, msg[:-1].decode())
+        return cls(ErrorCode(code), msg[:-1].decode())
 
     def build_msg(self) -> bytes:
         return struct.pack('!H', self.code) + f'{self.msg}\0'.encode()
