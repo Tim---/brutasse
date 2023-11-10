@@ -2,6 +2,8 @@
 
 import asyncio
 import itertools
+import anyio
+import contextlib
 from collections.abc import Iterator
 from anyio.abc import UDPSocket, ConnectedUDPSocket
 from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data
@@ -100,6 +102,12 @@ class Client(Common):
         self.check_resp_ack(resp, 0)
         await self.send_data(data)
 
+    @classmethod
+    @contextlib.asynccontextmanager
+    async def create(cls, host: str, port: int = 69):
+        async with await anyio.create_connected_udp_socket(host, port) as udp:
+            yield cls(udp)
+
 
 Addr = tuple[str, int]
 
@@ -165,3 +173,11 @@ class Server:
     async def run(self) -> None:
         async for raw, addr in self.udp:
             await self.datagram_received(raw, addr)
+
+    @classmethod
+    @contextlib.asynccontextmanager
+    async def create(cls, host: str = '::', port: int = 69):
+        async with await anyio.create_udp_socket(local_host=host,
+                                                 local_port=port,
+                                                 reuse_port=True) as udp:
+            yield cls(udp)
