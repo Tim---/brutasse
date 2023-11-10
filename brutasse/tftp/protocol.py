@@ -6,7 +6,7 @@ import anyio
 import contextlib
 from collections.abc import Iterator
 from anyio.abc import UDPSocket, ConnectedUDPSocket
-from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data
+from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data, ErrorCode
 
 
 class Common:
@@ -112,12 +112,57 @@ class Client(Common):
 Addr = tuple[str, int]
 
 
+class TftpRequest:
+    def __init__(self, filename: str, mode: str):
+        self.filename = filename
+        self.mode = mode
+        self.accepted: asyncio.Future[bool] = asyncio.Future()
+
+    async def refuse(self) -> None:
+        self.accepted.set_result(False)
+
+    async def is_accepted(self):
+        return await self.accepted
+
+
+class TftpReadRequest(TftpRequest):
+    async def accept(self, data: bytes) -> None:
+        self.data = data
+        self.accepted.set_result(True)
+
+    def get_data(self) -> bytes:
+        return self.data
+
+
+class TftpWriteRequest(TftpRequest):
+    def __init__(self, filename: str, mode: str):
+        super().__init__(filename, mode)
+        self.data: asyncio.Future[bytes] = asyncio.Future()
+
+    async def accept(self) -> bytes:
+        self.accepted.set_result(True)
+        return await self.data
+
+    def set_data(self, data: bytes) -> None:
+        self.data.set_result(data)
+
+
+class RequestHandler:
+    async def on_read_request(self, req: TftpReadRequest) -> None:
+        raise NotImplementedError
+
+    async def on_write_request(self, req: TftpWriteRequest) -> None:
+        raise NotImplementedError
+
+
 class ServerHandler(Common):
     def __init__(self, server: 'Server', addr: Addr,
-                 queue: asyncio.Queue[bytes]):
+                 queue: asyncio.Queue[bytes],
+                 request_handler: RequestHandler):
         self.server = server
         self.addr = addr
         self.queue = queue
+        self.request_handler = request_handler
 
     async def send_msg(self, msg: Msg) -> None:
         await self.server.send_datagram(msg.build(), self.addr)
@@ -128,22 +173,42 @@ class ServerHandler(Common):
     async def datagram_received(self, data: bytes) -> None:
         await self.queue.put(data)
 
+    async def handle_read_request(self, filename: str, mode: str) -> None:
+        req = TftpReadRequest(filename, mode)
+        task = asyncio.create_task(self.request_handler.on_read_request(req))
+        if await req.is_accepted():
+            data = req.get_data()
+            await self.send_data(data)
+        else:
+            await self.send_msg(Error(ErrorCode.NOT_DEFINED, 'oh noes'))
+        await task
+
+    async def handle_write_request(self, filename: str, mode: str) -> None:
+        req = TftpWriteRequest(filename, mode)
+        task = asyncio.create_task(self.request_handler.on_write_request(req))
+        if await req.is_accepted():
+            resp = await self.send_receive(Ack(0))
+            data = await self.recv_data(resp)
+            req.set_data(data)
+        else:
+            await self.send_msg(Error(ErrorCode.NOT_DEFINED, 'oh noes'))
+        await task
+
     async def run(self) -> None:
         msg = await self.recv_msg()
         match msg:
-            case ReadRequest():
-                dummy_data = b'A' * 4096
-                await self.send_data(dummy_data)
-            case WriteRequest():
-                resp = await self.send_receive(Ack(0))
-                await self.recv_data(resp)
+            case ReadRequest(filename, mode):
+                await self.handle_read_request(filename, mode)
+            case WriteRequest(filename, mode):
+                await self.handle_write_request(filename, mode)
             case _:
                 raise ValueError(f'Unexpected message {msg}')
 
 
 class Server:
-    def __init__(self, udp: UDPSocket):
+    def __init__(self, udp: UDPSocket, request_handler: RequestHandler):
         self.udp = udp
+        self.request_handler = request_handler
         self.handlers: dict[Addr, ServerHandler] = {}
         self.queues: dict[Addr, asyncio.Queue[Msg]] = {}
 
@@ -158,7 +223,7 @@ class Server:
             self.create_handler(addr, handler.queue)
 
     def create_handler(self, addr: Addr, queue: asyncio.Queue[bytes]) -> None:
-        handler = ServerHandler(self, addr, queue)
+        handler = ServerHandler(self, addr, queue, self.request_handler)
         task = asyncio.create_task(handler.run())
         task.add_done_callback(lambda task: self.remove_handler(addr))
         self.handlers[addr] = handler
@@ -176,8 +241,9 @@ class Server:
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def create(cls, host: str = '::', port: int = 69):
+    async def create(cls, request_handler: RequestHandler,
+                     host: str = '::', port: int = 69):
         async with await anyio.create_udp_socket(local_host=host,
                                                  local_port=port,
                                                  reuse_port=True) as udp:
-            yield cls(udp)
+            yield cls(udp, request_handler)
