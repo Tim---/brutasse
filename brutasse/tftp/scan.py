@@ -3,7 +3,7 @@
 import logging
 from typing import AsyncIterator
 from ipaddress import IPv4Network, IPv4Address
-from .proto import Msg, ReadRequest
+from .packet import Msg, ReadRequest
 from ..scan import zmap
 
 
