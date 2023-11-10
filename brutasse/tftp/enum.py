@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
-from .proto import Msg, ReadRequest, Error, Data
+from .packet import Msg, ReadRequest, Error, Data
 from anyio import create_connected_udp_socket
 
 

@@ -4,7 +4,7 @@ import asyncio
 import itertools
 from collections.abc import Iterator
 from anyio.abc import ConnectedUDPSocket
-from .proto import Msg, ReadRequest, WriteRequest, Error, Data, Ack
+from .packet import Msg, ReadRequest, WriteRequest, Error, Data, Ack
 
 
 class Common:
