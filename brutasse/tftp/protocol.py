@@ -2,11 +2,12 @@
 
 import asyncio
 import itertools
-import anyio
 import contextlib
+import anyio
 from collections.abc import Iterator
-from anyio.abc import UDPSocket, ConnectedUDPSocket
+from anyio.abc import ConnectedUDPSocket
 from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data, ErrorCode
+from ..udp import ConnectedUdpServerProtocol, ConnectedUdpServerHandler, Addr
 
 
 class Common:
@@ -109,9 +110,6 @@ class Client(Common):
             yield cls(udp)
 
 
-Addr = tuple[str, int]
-
-
 class TftpRequest:
     def __init__(self, filename: str, mode: str):
         self.filename = filename
@@ -155,23 +153,18 @@ class RequestHandler:
         raise NotImplementedError
 
 
-class ServerHandler(Common):
-    def __init__(self, server: 'Server', addr: Addr,
+class TftpServerHandler(ConnectedUdpServerHandler, Common):
+    def __init__(self, server: 'ConnectedUdpServerProtocol', addr: Addr,
                  queue: asyncio.Queue[bytes],
                  request_handler: RequestHandler):
-        self.server = server
-        self.addr = addr
-        self.queue = queue
+        super().__init__(server, addr, queue)
         self.request_handler = request_handler
 
     async def send_msg(self, msg: Msg) -> None:
-        await self.server.send_datagram(msg.build(), self.addr)
+        await self.send_datagram(msg.build())
 
     async def recv_msg(self) -> Msg:
-        return Msg.parse(await self.queue.get())
-
-    async def datagram_received(self, data: bytes) -> None:
-        await self.queue.put(data)
+        return Msg.parse(await self.recv_datagram())
 
     async def handle_read_request(self, filename: str, mode: str) -> None:
         req = TftpReadRequest(filename, mode)
@@ -205,45 +198,11 @@ class ServerHandler(Common):
                 raise ValueError(f'Unexpected message {msg}')
 
 
-class Server:
-    def __init__(self, udp: UDPSocket, request_handler: RequestHandler):
-        self.udp = udp
+class TftpServerProtocol(ConnectedUdpServerProtocol):
+    def __init__(self, request_handler: RequestHandler):
+        super().__init__()
         self.request_handler = request_handler
-        self.handlers: dict[Addr, ServerHandler] = {}
-        self.queues: dict[Addr, asyncio.Queue[Msg]] = {}
 
-    async def send_datagram(self, data: bytes, addr: Addr) -> None:
-        await self.udp.sendto(data, addr[0], addr[1])
-
-    def remove_handler(self, addr: Addr) -> None:
-        handler = self.handlers.pop(addr)
-        if not handler.queue.empty():
-            # If the client reuses the socket, we may have pending packets
-            # in the queue. Create a new handler with the same queue.
-            self.create_handler(addr, handler.queue)
-
-    def create_handler(self, addr: Addr, queue: asyncio.Queue[bytes]) -> None:
-        handler = ServerHandler(self, addr, queue, self.request_handler)
-        task = asyncio.create_task(handler.run())
-        task.add_done_callback(lambda task: self.remove_handler(addr))
-        self.handlers[addr] = handler
-
-    async def datagram_received(self, data: bytes, addr: Addr) -> None:
-        if addr not in self.handlers:
-            queue: asyncio.Queue[bytes] = asyncio.Queue()
-            self.create_handler(addr, queue)
-
-        await self.handlers[addr].datagram_received(data)
-
-    async def run(self) -> None:
-        async for raw, addr in self.udp:
-            await self.datagram_received(raw, addr)
-
-    @classmethod
-    @contextlib.asynccontextmanager
-    async def create(cls, request_handler: RequestHandler,
-                     host: str = '::', port: int = 69):
-        async with await anyio.create_udp_socket(local_host=host,
-                                                 local_port=port,
-                                                 reuse_port=True) as udp:
-            yield cls(udp, request_handler)
+    def create_server_handler(self, addr: Addr, queue: asyncio.Queue[bytes]
+                              ) -> ConnectedUdpServerHandler:
+        return TftpServerHandler(self, addr, queue, self.request_handler)
