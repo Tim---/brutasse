@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 
 import json
-import asyncio
 from ipaddress import IPv4Address, IPv4Network
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncIterator
+from asyncio.subprocess import create_subprocess_exec, PIPE
 from ..utils import get_default_interface, argunparse
 import os
 
 
-async def zmap_scan(options: dict[str, str], ranges: list[IPv4Network]) -> AsyncGenerator[dict[str, str], None]:
-    # TODO: we can't handle 100 kpps with this implementation.
-    # I guess we don't consume stdout quickly enough
-    # A solution would be to redirect the output to a temporary file and consume it slowly
-    # We can use --summary to properly detect the end of the scan
+async def zmap_scan(options: dict[str, str], ranges: list[IPv4Network]
+                    ) -> AsyncIterator[dict[str, str]]:
     interface = get_default_interface()
     base_options = {
         'output-module': 'json',
@@ -21,9 +18,10 @@ async def zmap_scan(options: dict[str, str], ranges: list[IPv4Network]) -> Async
     args = argunparse(base_options | options, map(str, ranges))
 
     read, write = os.pipe()
-    zmap_proc = await asyncio.subprocess.create_subprocess_exec('zmap', *args, stdout=write)
+    zmap_proc = await create_subprocess_exec('zmap', *args, stdout=write)
     os.close(write)
-    ztee_proc = await asyncio.subprocess.create_subprocess_exec('ztee', '-r', '/dev/null', stdin=read, stdout=asyncio.subprocess.PIPE)
+    ztee_proc = await create_subprocess_exec('ztee', '-r', '/dev/null',
+                                             stdin=read, stdout=PIPE)
     os.close(read)
     assert ztee_proc.stdout
     async for line in ztee_proc.stdout:
@@ -34,7 +32,9 @@ async def zmap_scan(options: dict[str, str], ranges: list[IPv4Network]) -> Async
     await ztee_proc.wait()
 
 
-async def udp_scan(ranges: list[IPv4Network], rate: int, port: int, payload: bytes) -> AsyncGenerator[tuple[IPv4Address, bytes], None]:
+async def udp_scan(ranges: list[IPv4Network], rate: int, port: int,
+                   payload: bytes
+                   ) -> AsyncIterator[tuple[IPv4Address, bytes]]:
     options = {
         'probe-module': 'udp',
         'target-port': str(port),
@@ -44,10 +44,11 @@ async def udp_scan(ranges: list[IPv4Network], rate: int, port: int, payload: byt
         'output-filter': f'success = 1 && repeat = 0 && sport = {port}',
     }
     async for j in zmap_scan(options, ranges):
-        yield IPv4Address(j['saddr']), bytes.fromhex(j['data'])
+        yield IPv4Address(j['saddr']), bytes.fromhex(j.get('data', ''))
 
 
-async def tcp_scan(ranges: list[IPv4Network], rate: int, port: int) -> AsyncGenerator[IPv4Address, None]:
+async def tcp_scan(ranges: list[IPv4Network], rate: int, port: int
+                   ) -> AsyncIterator[IPv4Address]:
     options = {
         'probe-module': 'tcp_synscan',
         'target-port': str(port),
