@@ -32,33 +32,26 @@ class Msg:
 
 
 @dataclass
-class ReadRequest(Msg, type_id=1):
+class _Request:
     filename: str
     mode: str
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        filename, mode, rest = raw.split(b'\0')
-        assert not rest
+        filename, mode, *opts = raw.split(b'\0')
+        assert not opts  # TODO: options
         return cls(filename.decode(), mode.decode())
 
     def build_msg(self) -> bytes:
         return f'{self.filename}\0{self.mode}\0'.encode()
 
 
-@dataclass
-class WriteRequest(Msg, type_id=2):
-    filename: str
-    mode: str
+class ReadRequest(_Request, Msg, type_id=1):
+    pass
 
-    @classmethod
-    def parse_msg(cls, raw: bytes) -> Self:
-        filename, mode, rest = raw.split(b'\0')
-        assert not rest
-        return cls(filename.decode(), mode.decode())
 
-    def build_msg(self) -> bytes:
-        return f'{self.filename}\0{self.mode}\0'.encode()
+class WriteRequest(_Request, Msg, type_id=2):
+    pass
 
 
 @dataclass
