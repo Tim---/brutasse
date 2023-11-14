@@ -11,22 +11,20 @@ from .snmp.scan import scan_v1, scan_v2c, scan_v3
 from .snmp.brute import brute
 from .tftp.scan import tftp_scan
 from .tftp.enum import enumerate_files
-from .msf.db import Metasploit
+from .msf import Metasploit
 from .parallel import progressbar_execute
 from .utils import ConnectionFailed, coro
 
 
 async def do_scan(workspace: str, port: int,
                   scan_func: AsyncIterable[tuple[IPv4Address, Any]]) -> None:
-    msfdb = Metasploit(workspace)
-    with msfdb.session() as session:
+    with Metasploit(workspace) as db:
         async for addr, info in scan_func:
             print(addr, info)
-            host = msfdb.get_or_create_host(session, str(addr))
-            service = msfdb.get_or_create_service(
-                session, host, 'udp', port)
+            host = db.get_or_create_host(str(addr))
+            service = db.get_or_create_service(host, 'udp', port)
             service.state = 'open'
-            session.commit()
+            db.commit()
 
 
 @click.group()
@@ -35,12 +33,12 @@ def cli() -> None:
 
 
 @cli.command()
+@click.option('--workspace', type=str, default='default')
 @coro
-async def tftp_enum() -> None:
-    msfdb = Metasploit('default')
+async def tftp_enum(workspace: str) -> None:
     files = ['running-config', 'startup-config']
-    with msfdb.session() as session:
-        services = msfdb.get_services_by_port(session, 'udp', 69)
+    with Metasploit(workspace) as db:
+        services = db.get_services_by_port('udp', 69)
         addresses = [service.host.address for service in services]
         coros = [enumerate_files(addr, files) for addr in addresses]
         async for fut in progressbar_execute(coros, 100):
@@ -53,11 +51,11 @@ async def tftp_enum() -> None:
 
 
 @cli.command()
+@click.option('--workspace', type=str, default='default')
 @coro
-async def bgp_info() -> None:
-    msfdb = Metasploit('default')
-    with msfdb.session() as session:
-        services = msfdb.get_services_by_port(session, 'tcp', 179)
+async def bgp_info(workspace: str) -> None:
+    with Metasploit(workspace) as db:
+        services = db.get_services_by_port('tcp', 179)
         addresses = [ip_address(service.host.address) for service in services]
         coros = [bgp_open_info(addr, 179) for addr in addresses]
         async for fut in progressbar_execute(coros, 100):
@@ -74,25 +72,24 @@ async def bgp_info() -> None:
 
 
 @cli.command()
+@click.option('--workspace', type=str, default='default')
 @coro
-async def snmp_brute() -> None:
+async def snmp_brute(workspace: str) -> None:
     communities = ['public', 'private']
-    msfdb = Metasploit('default')
-    with msfdb.session() as session:
-        services = msfdb.get_services_by_port(session, 'udp', 161)
+    with Metasploit(workspace) as db:
+        services = db.get_services_by_port('udp', 161)
         ips = [ip_address(service.host.address) for service in services]
         async for ip, port, community in brute(ips, communities):
-            host = msfdb.get_or_create_host(session, str(ip))
-            service = msfdb.get_or_create_service(session, host, 'udp', 161)
-            note = msfdb.get_or_create_note(
-                session, service, 'brutasse.snmp.community')
+            host = db.get_or_create_host(str(ip))
+            service = db.get_or_create_service(host, 'udp', 161)
+            note = db.get_or_create_note(service, 'brutasse.snmp.community')
             if not note.data:
                 data: set[str] = set()
             else:
                 data = set(cast(list[str], json.loads(note.data)))
             data.add(community)
             note.data = json.dumps(list(data))
-            session.commit()
+            db.commit()
             print(ip, port, community)
 
 

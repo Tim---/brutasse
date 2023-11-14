@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+from types import TracebackType
 import yaml
 from pathlib import Path
 from sqlalchemy import create_engine, URL, ForeignKey, select, ScalarResult
-from sqlalchemy.orm import Session, DeclarativeBase, Mapped, relationship, mapped_column, joinedload
+from sqlalchemy.orm import (
+    Session, DeclarativeBase, Mapped, relationship, mapped_column, joinedload)
 from sqlalchemy.dialects.postgresql import INET
-from typing import Type, TypeVar, Any
+from typing import Optional, Self, Type, TypeVar, Any
 
 
 class Base(DeclarativeBase):
@@ -64,15 +66,23 @@ class Metasploit:
         url = self.get_db_url()
 
         self.engine = create_engine(url)
+        self.workspace_name = workspace_name
 
-        with self.session() as session:
-            workspace = session.query(Workspace).filter_by(
-                name=workspace_name).first()
-            assert workspace
-            self.workspace_id = workspace.id
+    def __enter__(self) -> Self:
+        self.session = Session(self.engine)
+        workspace = self.session.query(Workspace).filter_by(
+            name=self.workspace_name).first()
+        assert workspace
+        self.workspace_id = workspace.id
+        return self
 
-    def session(self) -> Session:
-        return Session(self.engine)
+    def __exit__(self, exc_type: Optional[type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
+        self.session.close()
+
+    def commit(self) -> None:
+        self.session.commit()
 
     def get_db_url(self) -> URL:
         lookup_paths = [
@@ -99,28 +109,32 @@ class Metasploit:
             database=prod['database'],
         )
 
-    def get_or_create(self, session: Session, model: Type[T], **kwargs: Any) -> T:
-        instance = session.query(model).filter_by(**kwargs).first()
+    def get_or_create(self, model: Type[T], **kwargs: Any) -> T:
+        instance = self.session.query(model).filter_by(**kwargs).first()
         if not instance:
             instance = model(**kwargs)
-            session.add(instance)
+            self.session.add(instance)
         return instance
 
-    def get_or_create_host(self, session: Session, address: str) -> Host:
-        return self.get_or_create(session, Host, address=address, workspace_id=self.workspace_id)
+    def get_or_create_host(self, address: str) -> Host:
+        return self.get_or_create(Host, address=address,
+                                  workspace_id=self.workspace_id)
 
-    def get_or_create_service(self, session: Session, host: Host, proto: str, port: int) -> Service:
+    def get_or_create_service(self, host: Host, proto: str, port: int
+                              ) -> Service:
         # Note: do we care about hosts.service_count ?
-        return self.get_or_create(session, Service, host=host, proto=proto, port=port)
+        return self.get_or_create(Service, host=host,
+                                  proto=proto, port=port)
 
-    def get_services_by_port(self, session: Session, proto: str, port: int) -> ScalarResult[Service]:
+    def get_services_by_port(self, proto: str, port: int
+                             ) -> ScalarResult[Service]:
         stmt = (
             select(Service)
             .where(Service.proto == proto)
             .where(Service.port == port)
             .options(joinedload(Service.host))
         )
-        return session.execute(stmt).scalars()
+        return self.session.execute(stmt).scalars()
 
-    def get_or_create_note(self, session: Session, service: Service, ntype: str) -> Note:
-        return self.get_or_create(session, Note, service=service, ntype=ntype)
+    def get_or_create_note(self, service: Service, ntype: str) -> Note:
+        return self.get_or_create(Note, service=service, ntype=ntype)
