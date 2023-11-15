@@ -2,27 +2,37 @@
 
 import asyncio
 from typing import TypeVar
-from collections.abc import Coroutine, AsyncGenerator
+from collections.abc import Coroutine, Iterable, AsyncIterator, Collection
 import progressbar
 from termcolor import colored
 
 T = TypeVar('T')
 
+# TODO: maybe it would be better to take the coroutine function
+# and iterator of parameters as an argument ?
+# This would avoid creating coroutines (which need to be closed)
 
-async def parallel_execute(coros: list[Coroutine[None, None, T]], parallelism: int) -> AsyncGenerator[asyncio.Task[T], None]:
+
+async def parallel_execute(coros: Iterable[Coroutine[None, None, T]],
+                           parallelism: int
+                           ) -> AsyncIterator[asyncio.Task[T]]:
     dltasks: set[asyncio.Task[T]] = set()
+    it = iter(coros)
     try:
-        for coro in coros:
-            if len(dltasks) >= parallelism:
-                _done, dltasks = await asyncio.wait(dltasks, return_when=asyncio.FIRST_COMPLETED)
-                for d in _done:
-                    yield d
+        for coro in it:
             dltasks.add(asyncio.create_task(coro))
+            if len(dltasks) >= parallelism:
+                done, dltasks = await asyncio.wait(
+                    dltasks, return_when=asyncio.FIRST_COMPLETED)
+                for d in done:
+                    yield d
     except asyncio.CancelledError:
-        pass  # Probably not exactly what we should do
+        for coro in it:
+            coro.close()
     while dltasks:
-        _done, dltasks = await asyncio.wait(dltasks, return_when=asyncio.FIRST_COMPLETED)
-        for d in _done:
+        done, dltasks = await asyncio.wait(
+            dltasks, return_when=asyncio.FIRST_COMPLETED)
+        for d in done:
             yield d
 
 
@@ -44,22 +54,23 @@ class MyProgressBar(progressbar.ProgressBar):
             progressbar.MultiRangeBar("amounts", markers=markers),
         ]
         self.amounts = [0, 0, n]
-        super().__init__(widgets=widgets, redirect_stdout=True)
+        super().__init__(widgets=widgets, redirect_stdout=True,
+                         redirect_stderr=True)
 
     def move(self, src: int, dst: int):
         self.amounts[src] -= 1
         self.amounts[dst] += 1
         self.update(
-            done=self.amounts[self.OK], error=self.amounts[self.ERROR], amounts=self.amounts, force=True
+            done=self.amounts[self.OK], error=self.amounts[self.ERROR],
+            amounts=self.amounts, force=True
         )
 
 
-async def progressbar_execute(coros: list[Coroutine[None, None, T]], parallelism: int) -> AsyncGenerator[asyncio.Task[T], None]:
+async def progressbar_execute(coros: Collection[Coroutine[None, None, T]],
+                              parallelism: int
+                              ) -> AsyncIterator[asyncio.Task[T]]:
     with MyProgressBar(len(coros)) as bar:
         async for fut in parallel_execute(coros, parallelism):
-            try:
-                fut.result()
-                bar.move(bar.PENDING, bar.OK)
-            except Exception:
-                bar.move(bar.PENDING, bar.ERROR)
+            bar.move(bar.PENDING, bar.OK if fut.exception()
+                     is None else bar.ERROR)
             yield fut
