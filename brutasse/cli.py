@@ -3,10 +3,12 @@
 import asyncio
 import click
 from ipaddress import IPv4Network, IPv4Address, ip_address
-from typing import Any, cast
-from collections.abc import AsyncIterable
+from typing import Any, cast, TypeVar
+from collections.abc import AsyncIterable, Collection, Coroutine, AsyncIterator
 from brutasse.bgp.info import bgp_open_info
 import json
+import logging
+import types
 from .snmp.scan import scan_v1, scan_v2c, scan_v3
 from .snmp.brute import brute
 from .tftp.scan import tftp_scan
@@ -26,6 +28,19 @@ async def do_scan(workspace: str, port: int,
             service.state = 'open'
             db.commit()
 
+T = TypeVar('T')
+
+
+async def parallel_helper(coros: Collection[Coroutine[None, None, T]],
+                          parallelism: int, ignore: type | types.UnionType
+                          ) -> AsyncIterator[T]:
+    async for fut in progressbar_execute(coros, parallelism):
+        try:
+            yield await fut
+        except Exception as e:
+            if not isinstance(e, ignore):
+                logging.error(repr(e))
+
 
 @click.group()
 def cli() -> None:
@@ -41,13 +56,10 @@ async def tftp_enum(workspace: str) -> None:
         services = db.get_services_by_port('udp', 69)
         addresses = [service.host.address for service in services]
         coros = [enumerate_files(addr, files) for addr in addresses]
-        async for fut in progressbar_execute(coros, 100):
-            try:
-                ip, filenames = await fut
-                for filename in filenames:
-                    print(ip, filename)
-            except Exception as e:
-                print(repr(e))
+        async for (ip, filenames) in parallel_helper(coros, 100,
+                                                     ignore=TimeoutError):
+            for filename in filenames:
+                print(ip, filename)
 
 
 @cli.command()
@@ -58,17 +70,10 @@ async def bgp_info(workspace: str) -> None:
         services = db.get_services_by_port('tcp', 179)
         addresses = [ip_address(service.host.address) for service in services]
         coros = [bgp_open_info(addr, 179) for addr in addresses]
-        async for fut in progressbar_execute(coros, 100):
-            try:
-                res = fut.result()
-                print(res)
-            except ConnectionFailed:
-                pass
-            except (asyncio.IncompleteReadError, ConnectionResetError,
-                    TimeoutError):
-                pass
-            except Exception as e:
-                print(repr(e))
+        ignore = (ConnectionFailed | asyncio.IncompleteReadError
+                  | ConnectionResetError | TimeoutError)
+        async for res in parallel_helper(coros, 100, ignore=ignore):
+            print(res)
 
 
 @cli.command()
