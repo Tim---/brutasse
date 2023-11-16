@@ -54,8 +54,10 @@ async def tftp_enum(workspace: str) -> None:
     files = ['running-config', 'startup-config']
     with Metasploit(workspace) as db:
         services = db.get_services_by_port('udp', 69)
-        addresses = [service.host.address for service in services]
-        coros = [enumerate_files(addr, files) for addr in addresses]
+        addresses = ((ip_address(service.host.address), service.port)
+                     for service in services)
+        coros = [enumerate_files(ip, port, files=files)
+                 for ip, port in addresses]
         async for (ip, filenames) in parallel_helper(coros, 100,
                                                      ignore=TimeoutError):
             for filename in filenames:
@@ -68,8 +70,9 @@ async def tftp_enum(workspace: str) -> None:
 async def bgp_info(workspace: str) -> None:
     with Metasploit(workspace) as db:
         services = db.get_services_by_port('tcp', 179)
-        addresses = [ip_address(service.host.address) for service in services]
-        coros = [bgp_open_info(addr, 179) for addr in addresses]
+        addresses = ((ip_address(service.host.address), service.port)
+                     for service in services)
+        coros = [bgp_open_info(ip, port) for ip, port in addresses]
         ignore = (ConnectionFailed | asyncio.IncompleteReadError
                   | ConnectionResetError | TimeoutError)
         async for res in parallel_helper(coros, 100, ignore=ignore):
