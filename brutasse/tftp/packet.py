@@ -38,7 +38,7 @@ class _Request:
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        filename, mode, *opts = raw.split(b'\0')
+        filename, mode, opts = raw.split(b'\0', 2)
         assert not opts  # TODO: options
         return cls(filename.decode(), mode.decode())
 

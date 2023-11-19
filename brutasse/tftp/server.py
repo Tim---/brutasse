@@ -4,7 +4,7 @@ import asyncio
 import argparse
 import pathlib
 from brutasse.tftp.protocol import (
-    TftpServerProtocol, RequestHandler, TftpReadRequest, TftpWriteRequest)
+    TftpServer, RequestHandler, TftpReadRequest, TftpWriteRequest)
 
 
 class Handler(RequestHandler):
@@ -50,15 +50,8 @@ def get_args() -> argparse.Namespace:
 
 async def main():
     args = get_args()
-    loop = asyncio.get_running_loop()
-    transport, protocol = await loop.create_datagram_endpoint(
-        lambda: TftpServerProtocol(Handler(args.directory)),
-        local_addr=('::', args.port))
-
-    try:
+    async with TftpServer(Handler(args.directory), port=args.port):
         await asyncio.sleep(3600)  # Serve for 1 hour.
-    finally:
-        transport.close()
 
 
 if __name__ == "__main__":

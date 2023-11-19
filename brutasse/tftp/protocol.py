@@ -3,7 +3,9 @@
 import asyncio
 import itertools
 import contextlib
+from types import TracebackType
 import anyio
+from typing import Optional
 from collections.abc import Iterator
 from anyio.abc import ConnectedUDPSocket
 from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data, ErrorCode
@@ -111,7 +113,9 @@ class Client(Common):
 
 
 class TftpRequest:
-    def __init__(self, filename: str, mode: str):
+    def __init__(self, server_handler: 'TftpServerHandler',
+                 filename: str, mode: str):
+        self.server_handler = server_handler
         self.filename = filename
         self.mode = mode
         self.accepted: asyncio.Future[bool] = asyncio.Future()
@@ -119,30 +123,44 @@ class TftpRequest:
     async def refuse(self) -> None:
         self.accepted.set_result(False)
 
-    async def is_accepted(self):
-        return await self.accepted
-
 
 class TftpReadRequest(TftpRequest):
     async def accept(self, data: bytes) -> None:
         self.data = data
         self.accepted.set_result(True)
 
-    def get_data(self) -> bytes:
-        return self.data
+    async def run(self):
+        task = asyncio.create_task(
+            self.server_handler.request_handler.on_read_request(self))
+        if await self.accepted:
+            await self.server_handler.send_data(self.data)
+        else:
+            await self.server_handler.send_msg(
+                Error(ErrorCode.NOT_DEFINED, 'oh noes'))
+        await task
 
 
 class TftpWriteRequest(TftpRequest):
-    def __init__(self, filename: str, mode: str):
-        super().__init__(filename, mode)
+    def __init__(self, server_handler: 'TftpServerHandler',
+                 filename: str, mode: str):
+        super().__init__(server_handler, filename, mode)
         self.data: asyncio.Future[bytes] = asyncio.Future()
 
     async def accept(self) -> bytes:
         self.accepted.set_result(True)
         return await self.data
 
-    def set_data(self, data: bytes) -> None:
-        self.data.set_result(data)
+    async def run(self):
+        task = asyncio.create_task(
+            self.server_handler.request_handler.on_write_request(self))
+        if await self.accepted:
+            resp = await self.server_handler.send_receive(Ack(0))
+            data = await self.server_handler.recv_data(resp)
+            self.data.set_result(data)
+        else:
+            await self.server_handler.send_msg(
+                Error(ErrorCode.NOT_DEFINED, 'oh noes'))
+        await task
 
 
 class RequestHandler:
@@ -166,36 +184,16 @@ class TftpServerHandler(ConnectedUdpServerHandler, Common):
     async def recv_msg(self) -> Msg:
         return Msg.parse(await self.recv_datagram())
 
-    async def handle_read_request(self, filename: str, mode: str) -> None:
-        req = TftpReadRequest(filename, mode)
-        task = asyncio.create_task(self.request_handler.on_read_request(req))
-        if await req.is_accepted():
-            data = req.get_data()
-            await self.send_data(data)
-        else:
-            await self.send_msg(Error(ErrorCode.NOT_DEFINED, 'oh noes'))
-        await task
-
-    async def handle_write_request(self, filename: str, mode: str) -> None:
-        req = TftpWriteRequest(filename, mode)
-        task = asyncio.create_task(self.request_handler.on_write_request(req))
-        if await req.is_accepted():
-            resp = await self.send_receive(Ack(0))
-            data = await self.recv_data(resp)
-            req.set_data(data)
-        else:
-            await self.send_msg(Error(ErrorCode.NOT_DEFINED, 'oh noes'))
-        await task
-
     async def run(self) -> None:
         msg = await self.recv_msg()
         match msg:
             case ReadRequest(filename, mode):
-                await self.handle_read_request(filename, mode)
+                req = TftpReadRequest(self, filename, mode)
             case WriteRequest(filename, mode):
-                await self.handle_write_request(filename, mode)
+                req = TftpWriteRequest(self, filename, mode)
             case _:
                 raise ValueError(f'Unexpected message {msg}')
+        await req.run()
 
 
 class TftpServerProtocol(ConnectedUdpServerProtocol):
@@ -206,3 +204,22 @@ class TftpServerProtocol(ConnectedUdpServerProtocol):
     def create_server_handler(self, addr: Addr, queue: asyncio.Queue[bytes]
                               ) -> ConnectedUdpServerHandler:
         return TftpServerHandler(self, addr, queue, self.request_handler)
+
+
+class TftpServer:
+    def __init__(self, request_handler: RequestHandler,
+                 ip: str = '::', port: int = 69):
+        self.ip = ip
+        self.port = port
+        self.request_handler = request_handler
+
+    async def __aenter__(self) -> None:
+        loop = asyncio.get_running_loop()
+        self.transport, self.protocol = await loop.create_datagram_endpoint(
+            lambda: TftpServerProtocol(self.request_handler),
+            local_addr=(self.ip, self.port))
+
+    async def __aexit__(self, exc_type: Optional[type[BaseException]],
+                        exc_value: Optional[BaseException],
+                        traceback: Optional[TracebackType]) -> None:
+        self.transport.close()
