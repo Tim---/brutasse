@@ -8,9 +8,11 @@ from typing import cast
 
 
 class Clientv2:
+    # TODO: is it ok to use only one SnmpEngine ?
+    snmp_engine = SnmpEngine()
+
     def __init__(self, ip: str, port: int, community: str):
         self.ip = ip
-        self.snmp_engine = SnmpEngine()
         self.auth_data = CommunityData(community, mpModel=1)
         self.transport_target = UdpTransportTarget((ip, port))
         self.context_data = ContextData()
@@ -52,7 +54,8 @@ class Clientv2:
         (error_indication, error_status,
          error_index, out_var_binds) = await iterator
         assert not error_indication
-        assert not error_status
+        if error_status:
+            raise Exception(f'SNMP error: {error_status}')
         assert not error_index
 
         return [cast(Asn1Item, value) for _, value in out_var_binds]

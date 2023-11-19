@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 
+from .msf import Note, Service
+from .snmp.client import Clientv2
 import asyncio
 import click
 from ipaddress import IPv4Network, IPv4Address, ip_address
-from typing import Any, cast, TypeVar
+from typing import Any, cast, TypeVar, Optional
 from collections.abc import AsyncIterable, Collection, Coroutine, AsyncIterator
 from brutasse.bgp.info import bgp_open_info
 import json
 import logging
 import types
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from .snmp.scan import scan_v1, scan_v2c, scan_v3
 from .snmp.brute import brute
 from .tftp.scan import tftp_scan
@@ -32,13 +36,14 @@ T = TypeVar('T')
 
 
 async def parallel_helper(coros: Collection[Coroutine[None, None, T]],
-                          parallelism: int, ignore: type | types.UnionType
+                          parallelism: int,
+                          ignore: Optional[type | types.UnionType] = None
                           ) -> AsyncIterator[T]:
     async for fut in progressbar_execute(coros, parallelism):
         try:
             yield await fut
         except Exception as e:
-            if not isinstance(e, ignore):
+            if ignore is None or not isinstance(e, ignore):
                 logging.error(repr(e))
 
 
@@ -99,6 +104,40 @@ async def snmp_brute(workspace: str) -> None:
             note.data = json.dumps(list(data))
             db.commit()
             print(ip, port, community)
+
+
+def get_authenticated_snmp_services(db: Metasploit):
+    stmt = (
+        select(Note)
+        .where(Note.ntype == 'brutasse.snmp.community')
+        .options(joinedload(Note.service).joinedload(Service.host))
+    )
+
+    for note in db.session.execute(stmt).scalars():
+        ip = note.service.host.address
+        port = note.service.port
+        communities = set(json.loads(note.data))
+        # TODO: try all communities ?
+        yield ip, port, communities.pop()
+
+
+async def do_snmp_info(ip: str, port: int, community: str, timeout: float
+                       ) -> dict[str, str]:
+    client = Clientv2(ip, port, community)
+    return await asyncio.wait_for(client.get_sys_info(), timeout)
+
+
+@cli.command()
+@click.option('--workspace', type=str, default='default')
+@coro
+async def snmp_info(workspace: str) -> None:
+    with Metasploit(workspace) as db:
+        coros = [
+            do_snmp_info(ip, port, community, timeout=5)
+            for ip, port, community in get_authenticated_snmp_services(db)
+        ]
+        async for res in parallel_helper(coros, parallelism=100):
+            print(res)
 
 
 @cli.group()
