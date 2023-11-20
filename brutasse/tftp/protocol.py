@@ -118,49 +118,28 @@ class TftpRequest:
         self.server_handler = server_handler
         self.filename = filename
         self.mode = mode
-        self.accepted: asyncio.Future[bool] = asyncio.Future()
 
-    async def refuse(self) -> None:
-        self.accepted.set_result(False)
+    async def reject(self) -> None:
+        await self.server_handler.send_msg(
+            Error(ErrorCode.NOT_DEFINED, 'oh noes'))
 
 
 class TftpReadRequest(TftpRequest):
     async def accept(self, data: bytes) -> None:
-        self.data = data
-        self.accepted.set_result(True)
+        await self.server_handler.send_data(data)
 
-    async def run(self):
-        task = asyncio.create_task(
-            self.server_handler.request_handler.on_read_request(self))
-        if await self.accepted:
-            await self.server_handler.send_data(self.data)
-        else:
-            await self.server_handler.send_msg(
-                Error(ErrorCode.NOT_DEFINED, 'oh noes'))
-        await task
+    async def run(self) -> None:
+        await self.server_handler.request_handler.on_read_request(self)
 
 
 class TftpWriteRequest(TftpRequest):
-    def __init__(self, server_handler: 'TftpServerHandler',
-                 filename: str, mode: str):
-        super().__init__(server_handler, filename, mode)
-        self.data: asyncio.Future[bytes] = asyncio.Future()
-
     async def accept(self) -> bytes:
-        self.accepted.set_result(True)
-        return await self.data
+        resp = await self.server_handler.send_receive(Ack(0))
+        data = await self.server_handler.recv_data(resp)
+        return data
 
-    async def run(self):
-        task = asyncio.create_task(
-            self.server_handler.request_handler.on_write_request(self))
-        if await self.accepted:
-            resp = await self.server_handler.send_receive(Ack(0))
-            data = await self.server_handler.recv_data(resp)
-            self.data.set_result(data)
-        else:
-            await self.server_handler.send_msg(
-                Error(ErrorCode.NOT_DEFINED, 'oh noes'))
-        await task
+    async def run(self) -> None:
+        await self.server_handler.request_handler.on_write_request(self)
 
 
 class RequestHandler:

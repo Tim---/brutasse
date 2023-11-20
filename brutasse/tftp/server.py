@@ -20,11 +20,11 @@ class Handler(RequestHandler):
         try:
             path = self.check_path(req.filename)
         except ValueError:
-            await req.refuse()
+            await req.reject()
             return
 
         if not path.is_file():
-            await req.refuse()
+            await req.reject()
             return
 
         data = path.read_bytes()
@@ -34,7 +34,7 @@ class Handler(RequestHandler):
         try:
             path = self.check_path(req.filename)
         except ValueError:
-            await req.refuse()
+            await req.reject()
             return
 
         data = await req.accept()
