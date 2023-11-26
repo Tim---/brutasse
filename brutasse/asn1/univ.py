@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
 
-import typing
+from typing import Self
+from .common import Identifier, TagClass
 
 
-class Sequence:
+class Asn1Type:
     pass
 
 
-class ObjectIdentifier(str):
-    pass
+class Sequence(Asn1Type):
+    identifier = Identifier(TagClass.UNIVERSAL, True, 16)
 
 
-class Integer(int):
-    pass
+class ObjectIdentifier(tuple[int, ...], Asn1Type):
+    identifier = Identifier(TagClass.UNIVERSAL, False, 6)
+
+    @classmethod
+    def from_string(cls, s: str) -> Self:
+        return cls(list(map(int, s.split('.'))))
 
 
-class OctetString(bytes):
-    pass
+class Integer(int, Asn1Type):
+    identifier = Identifier(TagClass.UNIVERSAL, False, 2)
 
 
-class Null:
-    pass
+class OctetString(bytes, Asn1Type):
+    identifier = Identifier(TagClass.UNIVERSAL, False, 4)
 
 
-Any = typing.Any
+class Null(Asn1Type):
+    identifier = Identifier(TagClass.UNIVERSAL, False, 5)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from . import univ
+from .common import Identifier, TagClass
 
 
 Integer = univ.Integer
@@ -9,31 +10,27 @@ OctetString = univ.OctetString
 
 
 class IpAddress(univ.OctetString):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 0)
 
 
 class Counter32(univ.Integer):
-    pass
-
-
-class Gauge32(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 1)
 
 
 class Unsigned32(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 2)
 
 
 class TimeTicks(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 3)
 
 
 class Opaque(univ.OctetString):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 4)
 
 
 class Counter64(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 6)
 
 
 class Bits(univ.OctetString):
@@ -47,6 +44,6 @@ class ObjectName(univ.ObjectIdentifier):
 SimpleSyntax = Integer | OctetString | univ.ObjectIdentifier
 
 ApplicationSyntax = (IpAddress | Counter32 | TimeTicks |
-                     Opaque | Counter64 | Gauge32)
+                     Opaque | Counter64 | Unsigned32)
 
 ObjectSyntax = SimpleSyntax | ApplicationSyntax

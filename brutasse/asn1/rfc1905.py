@@ -2,18 +2,19 @@
 
 from dataclasses import dataclass
 from . import univ, rfc1902
+from .common import Identifier, TagClass
 
 
 class noSuchObject(univ.Null):
-    pass
+    identifier = Identifier(TagClass.CONTEXT, False, 0)
 
 
 class noSuchInstance(univ.Null):
-    pass
+    identifier = Identifier(TagClass.CONTEXT, False, 1)
 
 
 class endOfMibView(univ.Null):
-    pass
+    identifier = Identifier(TagClass.CONTEXT, False, 2)
 
 
 _BindValue = (rfc1902.ObjectSyntax | univ.Null |
@@ -31,6 +32,8 @@ VarBindList = list[VarBind]
 
 @dataclass
 class GetRequestPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 0)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -39,6 +42,8 @@ class GetRequestPDU(univ.Sequence):
 
 @dataclass
 class GetNextRequestPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 1)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -47,6 +52,8 @@ class GetNextRequestPDU(univ.Sequence):
 
 @dataclass
 class ResponsePDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 2)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -55,6 +62,8 @@ class ResponsePDU(univ.Sequence):
 
 @dataclass
 class SetRequestPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 3)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -63,6 +72,8 @@ class SetRequestPDU(univ.Sequence):
 
 @dataclass
 class GetBulkRequestPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 5)
+
     request_id: rfc1902.Integer32
     non_repeaters: univ.Integer
     max_repetitions: univ.Integer
@@ -71,6 +82,8 @@ class GetBulkRequestPDU(univ.Sequence):
 
 @dataclass
 class InformRequestPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 6)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -79,6 +92,8 @@ class InformRequestPDU(univ.Sequence):
 
 @dataclass
 class SNMPv2TrapPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 7)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer
@@ -87,6 +102,8 @@ class SNMPv2TrapPDU(univ.Sequence):
 
 @dataclass
 class ReportPDU(univ.Sequence):
+    identifier = Identifier(TagClass.CONTEXT, True, 8)
+
     request_id: rfc1902.Integer32
     error_status: univ.Integer
     error_index: univ.Integer

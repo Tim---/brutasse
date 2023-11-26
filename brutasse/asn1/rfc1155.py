@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from . import univ
+from .common import Identifier, TagClass
 
 ObjectName = univ.ObjectIdentifier
 
@@ -9,26 +10,26 @@ SimpleSyntax = (univ.Integer | univ.OctetString |
 
 
 class IpAddress(univ.OctetString):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 0)
 
 
 NetworkAddress = IpAddress
 
 
 class Counter(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 1)
 
 
 class Gauge(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 2)
 
 
 class TimeTicks(univ.Integer):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 3)
 
 
 class Opaque(univ.OctetString):
-    pass
+    identifier = Identifier(TagClass.APPLICATION, False, 4)
 
 
 ApplicationSyntax = NetworkAddress | Counter | Gauge | TimeTicks | Opaque
