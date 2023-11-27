@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from . import univ, rfc1902
-from .common import Identifier, TagClass
+from .base import TagClass, identifier, Null, Sequence, Integer
+from .rfc1902 import ObjectSyntax, ObjectName, Integer32
 
 
-class noSuchObject(univ.Null):
-    identifier = Identifier(TagClass.CONTEXT, False, 0)
+@identifier(TagClass.CONTEXT, 0)
+class noSuchObject(Null):
+    pass
 
 
-class noSuchInstance(univ.Null):
-    identifier = Identifier(TagClass.CONTEXT, False, 1)
+@identifier(TagClass.CONTEXT, 1)
+class noSuchInstance(Null):
+    pass
 
 
-class endOfMibView(univ.Null):
-    identifier = Identifier(TagClass.CONTEXT, False, 2)
+@identifier(TagClass.CONTEXT, 2)
+class endOfMibView(Null):
+    pass
 
 
-_BindValue = (rfc1902.ObjectSyntax | univ.Null |
+_BindValue = (ObjectSyntax | Null |
               noSuchObject | noSuchInstance | endOfMibView)
 
 
 @dataclass
-class VarBind(univ.Sequence):
-    name: rfc1902.ObjectName
+class VarBind(Sequence):
+    name: ObjectName
     value: _BindValue
 
 
@@ -31,83 +34,67 @@ VarBindList = list[VarBind]
 
 
 @dataclass
-class GetRequestPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 0)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
+class PDU(Sequence):
+    request_id: Integer32
+    error_status: Integer
+    error_index: Integer
     variable_bindings: VarBindList
 
 
 @dataclass
-class GetNextRequestPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 1)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
+class BulkPDU(Sequence):
+    request_id: Integer32
+    non_repeaters: Integer
+    max_repetitions: Integer
     variable_bindings: VarBindList
 
 
 @dataclass
-class ResponsePDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 2)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
-    variable_bindings: VarBindList
+@identifier(TagClass.CONTEXT, 0)
+class GetRequestPDU(PDU):
+    pass
 
 
 @dataclass
-class SetRequestPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 3)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
-    variable_bindings: VarBindList
+@identifier(TagClass.CONTEXT, 1)
+class GetNextRequestPDU(PDU):
+    pass
 
 
 @dataclass
-class GetBulkRequestPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 5)
-
-    request_id: rfc1902.Integer32
-    non_repeaters: univ.Integer
-    max_repetitions: univ.Integer
-    variable_bindings: VarBindList
+@identifier(TagClass.CONTEXT, 2)
+class ResponsePDU(PDU):
+    pass
 
 
 @dataclass
-class InformRequestPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 6)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
-    variable_bindings: VarBindList
+@identifier(TagClass.CONTEXT, 3)
+class SetRequestPDU(PDU):
+    pass
 
 
 @dataclass
-class SNMPv2TrapPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 7)
-
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
-    variable_bindings: VarBindList
+@identifier(TagClass.CONTEXT, 5)
+class GetBulkRequestPDU(BulkPDU):
+    pass
 
 
 @dataclass
-class ReportPDU(univ.Sequence):
-    identifier = Identifier(TagClass.CONTEXT, True, 8)
+@identifier(TagClass.CONTEXT, 6)
+class InformRequestPDU(PDU):
+    pass
 
-    request_id: rfc1902.Integer32
-    error_status: univ.Integer
-    error_index: univ.Integer
-    variable_bindings: VarBindList
+
+@dataclass
+@identifier(TagClass.CONTEXT, 7)
+class SNMPv2TrapPDU(PDU):
+    pass
+
+
+@dataclass
+@identifier(TagClass.CONTEXT, 8)
+class ReportPDU(PDU):
+    pass
 
 
 PDUs = (GetRequestPDU | GetNextRequestPDU | GetBulkRequestPDU | ResponsePDU |

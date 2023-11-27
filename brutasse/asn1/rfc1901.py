@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from . import univ, rfc1905
+from .base import Sequence, Integer, OctetString
+from .rfc1905 import PDUs
 
 
 @dataclass
-class Message(univ.Sequence):
-    version: univ.Integer
-    community: univ.OctetString
-    # data: univ.Any
-    data: rfc1905.PDUs
+class Message(Sequence):
+    version: Integer
+    community: OctetString
+    data: PDUs

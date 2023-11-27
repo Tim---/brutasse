@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from . import univ, rfc1905
+from .base import Sequence, OctetString, Integer
+from .rfc1905 import PDUs
 
 
 @dataclass
-class ScopedPDU(univ.Sequence):
-    contextEngineId: univ.OctetString
-    contextName: univ.OctetString
-    data: rfc1905.PDUs
+class ScopedPDU(Sequence):
+    contextEngineId: OctetString
+    contextName: OctetString
+    data: PDUs
 
 
-ScopedPduData = ScopedPDU | univ.OctetString
-
-
-@dataclass
-class HeaderData(univ.Sequence):
-    msgID: univ.Integer
-    msgMaxSize: univ.Integer
-    msgFlags: univ.OctetString
-    msgSecurityModel: univ.Integer
+ScopedPduData = ScopedPDU | OctetString
 
 
 @dataclass
-class SNMPv3Message(univ.Sequence):
-    msgVersion: univ.Integer
+class HeaderData(Sequence):
+    msgID: Integer
+    msgMaxSize: Integer
+    msgFlags: OctetString
+    msgSecurityModel: Integer
+
+
+@dataclass
+class SNMPv3Message(Sequence):
+    msgVersion: Integer
     msgGlobalData: HeaderData
-    msgSecurityParameters: univ.OctetString
+    msgSecurityParameters: OctetString
     msgData: ScopedPduData

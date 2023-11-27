@@ -1,35 +1,39 @@
 #!/usr/bin/env python3
 
-from . import univ
-from .common import Identifier, TagClass
+from .base import (TagClass, ObjectIdentifier, Integer,
+                   OctetString, Null, identifier)
 
-ObjectName = univ.ObjectIdentifier
+ObjectName = ObjectIdentifier
 
-SimpleSyntax = (univ.Integer | univ.OctetString |
-                univ.ObjectIdentifier | univ.Null)
+SimpleSyntax = Integer | OctetString | ObjectIdentifier | Null
 
 
-class IpAddress(univ.OctetString):
-    identifier = Identifier(TagClass.APPLICATION, False, 0)
+@identifier(TagClass.APPLICATION, 0)
+class IpAddress(OctetString):
+    pass
 
 
 NetworkAddress = IpAddress
 
 
-class Counter(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 1)
+@identifier(TagClass.APPLICATION, 1)
+class Counter(Integer):
+    pass
 
 
-class Gauge(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 2)
+@identifier(TagClass.APPLICATION, 2)
+class Gauge(Integer):
+    pass
 
 
-class TimeTicks(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 3)
+@identifier(TagClass.APPLICATION, 3)
+class TimeTicks(Integer):
+    pass
 
 
-class Opaque(univ.OctetString):
-    identifier = Identifier(TagClass.APPLICATION, False, 4)
+@identifier(TagClass.APPLICATION, 4)
+class Opaque(OctetString):
+    pass
 
 
 ApplicationSyntax = NetworkAddress | Counter | Gauge | TimeTicks | Opaque

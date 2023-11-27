@@ -1,47 +1,50 @@
 #!/usr/bin/env python3
 
-from . import univ
-from .common import Identifier, TagClass
+from .base import TagClass, identifier, Integer, OctetString, ObjectIdentifier
+
+Integer32 = Integer
+OctetString = OctetString
 
 
-Integer = univ.Integer
-Integer32 = univ.Integer
-OctetString = univ.OctetString
-
-
-class IpAddress(univ.OctetString):
-    identifier = Identifier(TagClass.APPLICATION, False, 0)
-
-
-class Counter32(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 1)
-
-
-class Unsigned32(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 2)
-
-
-class TimeTicks(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 3)
-
-
-class Opaque(univ.OctetString):
-    identifier = Identifier(TagClass.APPLICATION, False, 4)
-
-
-class Counter64(univ.Integer):
-    identifier = Identifier(TagClass.APPLICATION, False, 6)
-
-
-class Bits(univ.OctetString):
+@identifier(TagClass.APPLICATION, 0)
+class IpAddress(OctetString):
     pass
 
 
-class ObjectName(univ.ObjectIdentifier):
+@identifier(TagClass.APPLICATION, 1)
+class Counter32(Integer):
     pass
 
 
-SimpleSyntax = Integer | OctetString | univ.ObjectIdentifier
+@identifier(TagClass.APPLICATION, 2)
+class Unsigned32(Integer):
+    pass
+
+
+@identifier(TagClass.APPLICATION, 3)
+class TimeTicks(Integer):
+    pass
+
+
+@identifier(TagClass.APPLICATION, 4)
+class Opaque(OctetString):
+    pass
+
+
+@identifier(TagClass.APPLICATION, 6)
+class Counter64(Integer):
+    pass
+
+
+class Bits(OctetString):
+    pass
+
+
+class ObjectName(ObjectIdentifier):
+    pass
+
+
+SimpleSyntax = Integer | OctetString | ObjectIdentifier
 
 ApplicationSyntax = (IpAddress | Counter32 | TimeTicks |
                      Opaque | Counter64 | Unsigned32)
