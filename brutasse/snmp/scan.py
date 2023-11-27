@@ -4,9 +4,9 @@ import logging
 from typing import TypeVar, Optional
 from ipaddress import IPv4Network, IPv4Address
 from collections.abc import Callable, AsyncIterator
-from .proto import (make_v1_request, get_v1_community,
-                    make_v2c_request, get_v2c_community,
-                    make_v3_request, parse_v3_vendor)
+from .snmpv1 import make_v1_request, get_v1_community
+from .snmpv2c import make_v2c_request, get_v2c_community
+from .snmpv3 import make_v3_request, parse_v3_vendor
 from ..scan import zmap
 
 T = TypeVar('T')
