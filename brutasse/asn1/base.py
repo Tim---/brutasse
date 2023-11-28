@@ -57,6 +57,9 @@ class ObjectIdentifier(tuple[int, ...], PrimitiveType):
     def from_string(cls, s: str) -> Self:
         return cls(list(map(int, s.split('.'))))
 
+    def __str__(self) -> str:
+        return '.'.join(map(str, self))
+
 
 @identifier(TagClass.UNIVERSAL, 2)
 class Integer(int, PrimitiveType):

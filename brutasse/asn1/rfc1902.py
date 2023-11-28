@@ -36,13 +36,7 @@ class Counter64(Integer):
     pass
 
 
-class Bits(OctetString):
-    pass
-
-
-class ObjectName(ObjectIdentifier):
-    pass
-
+ObjectName = ObjectIdentifier
 
 SimpleSyntax = Integer | OctetString | ObjectIdentifier
 

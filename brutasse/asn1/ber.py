@@ -37,7 +37,7 @@ class InStream:
             b = self.read_byte()
             n = (n * 0x80) + (b & 0x7f)
             if not b & 0x80:
-                return b
+                return n
 
     def parse_identifier(self) -> Identifier:
         identifier = self.read_byte()
@@ -164,7 +164,11 @@ def build_oid(obj: ObjectIdentifier) -> bytes:
 def parse_oid(raw: bytes) -> ObjectIdentifier:
     stream = InStream(raw)
     first_two = stream.read_byte()
-    first, second = divmod(first_two, 0x40)  # TODO: nope !
+    if first_two >= 80:
+        first = 2
+        second = first_two - 80
+    else:
+        first, second = divmod(first_two, 40)
     l: list[int] = [first, second]
     while not stream.is_eof():
         l.append(stream.read_base128())
