@@ -1,61 +1,31 @@
 #!/usr/bin/env python3
 
-from pysnmp.hlapi.asyncio import (
-    SnmpEngine, getCmd, CommunityData, UdpTransportTarget, ContextData,
-    ObjectType, ObjectIdentity)
-from pyasn1.type.base import Asn1Item
-from typing import cast
+from brutasse.snmp.snmpv2c import Snmpv2c
+from brutasse.asn1.rfc1902 import ObjectName, OctetString
+from brutasse.asn1.rfc1905 import _BindValue
 
 
-class Clientv2:
-    # TODO: is it ok to use only one SnmpEngine ?
-    snmp_engine = SnmpEngine()
+def as_string(value: _BindValue) -> str:
+    match value:
+        case OctetString():
+            return value.decode(errors='backslashreplace')
+        case ObjectName():
+            return str(value)
+        case _:
+            raise NotImplementedError()
 
-    def __init__(self, ip: str, port: int, community: str):
-        self.ip = ip
-        self.auth_data = CommunityData(community, mpModel=1)
-        self.transport_target = UdpTransportTarget((ip, port))
-        self.context_data = ContextData()
 
-    async def get_sys_info(self) -> dict[str, str]:
-        res = await self.get_several([
-            ObjectIdentity('1.3.6.1.2.1.1.1.0'),
-            ObjectIdentity('1.3.6.1.2.1.1.2.0'),
-            ObjectIdentity('1.3.6.1.2.1.1.4.0'),
-            ObjectIdentity('1.3.6.1.2.1.1.5.0'),
-            ObjectIdentity('1.3.6.1.2.1.1.6.0'),
-        ])
-        descr, object_id, contact, name, location = res
-        return {
-            'descr': str(descr),
-            'object_id': str(object_id),
-            'contact': str(contact),
-            'name': str(name),
-            'location': str(location)
-        }
-
-    async def get_one(self, oid: ObjectIdentity) -> Asn1Item:
-        value, = await self.get_several([oid])
-        return value
-
-    async def get_several(self, oids: list[ObjectIdentity]) -> list[Asn1Item]:
-        in_var_binds = [ObjectType(oid) for oid in oids]
-        iterator = getCmd(
-            self.snmp_engine,
-            self.auth_data,
-            self.transport_target,
-            self.context_data,
-            *in_var_binds,
-            lookupMib=False,
-        )
-
-        # TODO: if any varbind fails, we raise an Exception
-        # We might want to handle that a bit better. Or not.
-        (error_indication, error_status,
-         error_index, out_var_binds) = await iterator
-        assert not error_indication
-        if error_status:
-            raise Exception(f'SNMP error: {error_status}')
-        assert not error_index
-
-        return [cast(Asn1Item, value) for _, value in out_var_binds]
+async def get_sys_info(ip: str, port: int, community: str) -> dict[str, str]:
+    columns = {
+        1: 'description',
+        2: 'object_id',
+        4: 'contact',
+        5: 'name',
+        6: 'location',
+    }
+    oids = [ObjectName.from_string(f'1.3.6.1.2.1.1.{i}.0')
+            for i in columns]
+    async with Snmpv2c(ip, port, community) as client:
+        values = await client.get(oids)
+        return {column: as_string(value)
+                for column, value in zip(columns.values(), values)}

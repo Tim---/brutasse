@@ -16,7 +16,6 @@ dependencies = [
     "pyasn1-modules",
     "pyroute2",
     "psycopg2",
-    "pysnmp-lextudio",
     "click",
     "anyio",
 ]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from .msf import Note, Service
-from .snmp.client import Clientv2
+from .snmp.client import get_sys_info
 import asyncio
 import click
 from ipaddress import IPv4Network, IPv4Address, ip_address
@@ -44,7 +44,8 @@ async def parallel_helper(coros: Collection[Coroutine[None, None, T]],
             yield await fut
         except Exception as e:
             if ignore is None or not isinstance(e, ignore):
-                logging.error(repr(e))
+                # logging.error(repr(e))
+                logging.exception(e)
 
 
 @click.group()
@@ -121,19 +122,13 @@ def get_authenticated_snmp_services(db: Metasploit):
         yield ip, port, communities.pop()
 
 
-async def do_snmp_info(ip: str, port: int, community: str, timeout: float
-                       ) -> dict[str, str]:
-    client = Clientv2(ip, port, community)
-    return await asyncio.wait_for(client.get_sys_info(), timeout)
-
-
 @cli.command()
 @click.option('--workspace', type=str, default='default')
 @coro
 async def snmp_info(workspace: str) -> None:
     with Metasploit(workspace) as db:
         coros = [
-            do_snmp_info(ip, port, community, timeout=5)
+            asyncio.wait_for(get_sys_info(ip, port, community), 5)
             for ip, port, community in get_authenticated_snmp_services(db)
         ]
         async for res in parallel_helper(coros, parallelism=100):
