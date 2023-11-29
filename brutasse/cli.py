@@ -44,8 +44,8 @@ async def parallel_helper(coros: Collection[Coroutine[None, None, T]],
             yield await fut
         except Exception as e:
             if ignore is None or not isinstance(e, ignore):
-                # logging.error(repr(e))
-                logging.exception(e)
+                logging.error(repr(e))
+                # logging.exception(e)
 
 
 @click.group()

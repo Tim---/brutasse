@@ -7,21 +7,21 @@ from collections.abc import AsyncIterator
 import anyio
 from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString, Null
-from ..asn1.rfc1901 import Message
+from ..asn1.rfc1901 import Message, Version
 from ..asn1.rfc1902 import ObjectName
 from ..asn1.rfc1905 import (
     GetRequestPDU, GetNextRequestPDU, SetRequestPDU, ResponsePDU, VarBind,
-    VarBindList, PDUs, _BindValue
+    VarBindList, PDUs, _BindValue, ErrorStatus
 )
 
 
 def make_v2c_request(community: str) -> bytes:
     return ber_build(Message(
-        version=Integer(1),
+        version=Version.V2C,
         community=OctetString(community.encode()),
         data=GetRequestPDU(
             request_id=Integer(1278453590),
-            error_status=Integer(0),
+            error_status=ErrorStatus.NO_ERROR,
             error_index=Integer(0),
             variable_bindings=[VarBind(
                 name=ObjectName.from_string('1.3.6.1.2.1.1.5.0'),
@@ -112,20 +112,24 @@ class Snmpv2c:
         self.request_id += 1
         req = cls(
             request_id=Integer(request_id),
-            error_status=Integer(0),
+            error_status=ErrorStatus.NO_ERROR,
             error_index=Integer(0),
             variable_bindings=req_varbinds,
         )
         resp = await self.send_receive_pdu(req)
-        match resp:
-            case ResponsePDU(received_request_id, error_status,
-                             error_index, resp_varbinds):
-                assert received_request_id == request_id
-                assert error_status == 0
-                assert error_index == 0
-                return resp_varbinds
-            case _:
-                raise ValueError(f'Unexpected PDU: {resp}')
+
+        if not isinstance(resp, ResponsePDU):
+            raise ValueError(f'Unexpected PDU type: {resp.__class__}')
+
+        if resp.request_id != request_id:
+            raise ValueError(f'Unexpected request_id: {resp.request_id}')
+
+        if resp.error_status != ErrorStatus.NO_ERROR:
+            raise ValueError(f'Unexpected error_status: {resp.error_status}')
+
+        assert resp.error_index == 0
+
+        return resp.variable_bindings
 
     async def send_receive_pdu(self, pdu: PDUs) -> PDUs:
         for _ in range(self.retries + 1):
@@ -138,7 +142,7 @@ class Snmpv2c:
 
     async def send_pdu(self, pdu: PDUs) -> None:
         req = Message(
-            version=Integer(0),
+            version=Version.V2C,
             community=OctetString(self.community.encode()),
             data=pdu
         )
@@ -148,7 +152,7 @@ class Snmpv2c:
         raw = await self.udp.receive()
         resp = ber_parse(raw, Message)
         match resp:
-            case Message(Integer(0), OctetString(community), pdu) \
+            case Message(Version.V2C, OctetString(community), pdu) \
                     if community == self.community.encode():
                 return pdu
             case _:
