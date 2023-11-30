@@ -10,17 +10,17 @@ from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
 from ..asn1.rfc1155 import ObjectSyntax
 from ..asn1.rfc1157 import (
     Message, VarBind, GetRequestPDU, GetResponsePDU, GetNextRequestPDU,
-    SetRequestPDU, Pdus, VarBindList
+    SetRequestPDU, Pdus, VarBindList, Version, ErrorStatus
 )
 
 
 def make_v1_request(community: str) -> bytes:
     return ber_build(Message(
-        version=Integer(0),
+        version=Version.V1,
         community=OctetString(community.encode()),
         data=GetRequestPDU(
             request_id=Integer(1278453590),
-            error_status=Integer(0),
+            error_status=ErrorStatus.NO_ERROR,
             error_index=Integer(0),
             variable_bindings=[VarBind(
                 name=ObjectIdentifier.from_string('1.3.6.1.2.1.1.5.0'),
@@ -111,20 +111,24 @@ class Snmpv1:
         self.request_id += 1
         req = cls(
             request_id=Integer(request_id),
-            error_status=Integer(0),
+            error_status=ErrorStatus.NO_ERROR,
             error_index=Integer(0),
             variable_bindings=req_varbinds,
         )
         resp = await self.send_receive_pdu(req)
-        match resp:
-            case GetResponsePDU(received_request_id, error_status,
-                                error_index, resp_varbinds):
-                assert received_request_id == request_id
-                assert error_status == 0
-                assert error_index == 0
-                return resp_varbinds
-            case _:
-                raise ValueError(f'Unexpected PDU: {resp}')
+
+        if not isinstance(resp, GetResponsePDU):
+            raise ValueError(f'Unexpected PDU type: {resp.__class__}')
+
+        if resp.request_id != request_id:
+            raise ValueError(f'Unexpected request_id: {resp.request_id}')
+
+        if resp.error_status != ErrorStatus.NO_ERROR:
+            raise ValueError(f'Unexpected error_status: {resp.error_status}')
+
+        assert resp.error_index == 0
+
+        return resp.variable_bindings
 
     async def send_receive_pdu(self, pdu: Pdus) -> Pdus:
         for _ in range(self.retries + 1):
@@ -137,7 +141,7 @@ class Snmpv1:
 
     async def send_pdu(self, pdu: Pdus) -> None:
         req = Message(
-            version=Integer(0),
+            version=Version.V1,
             community=OctetString(self.community.encode()),
             data=pdu
         )
@@ -147,7 +151,7 @@ class Snmpv1:
         raw = await self.udp.receive()
         resp = ber_parse(raw, Message)
         match resp:
-            case Message(Integer(0), OctetString(community), pdu) \
+            case Message(Version.V1, OctetString(community), pdu) \
                     if community == self.community.encode():
                 return pdu
             case _:

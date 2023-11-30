@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 
+import enum
 from dataclasses import dataclass
 from .base import (TagClass, identifier, Sequence,
                    Integer, ObjectIdentifier, OctetString)
 from .rfc1155 import ObjectName, ObjectSyntax, NetworkAddress, TimeTicks
+
+
+class Version(Integer, enum.Enum):
+    V1 = 0
+
+
+class ErrorStatus(Integer, enum.Enum):
+    NO_ERROR = 0
+    TOO_BIG = 1
+    NO_SUCH_NAME = 2
+    BAD_VALUE = 3
+    READ_ONLY = 4
+    GEN_ERR = 5
 
 
 @dataclass
@@ -18,7 +32,7 @@ VarBindList = list[VarBind]
 @dataclass
 class _RequestBase(Sequence):
     request_id: Integer
-    error_status: Integer
+    error_status: ErrorStatus
     error_index: Integer
     variable_bindings: VarBindList
 
@@ -64,6 +78,6 @@ Pdus = (GetRequestPDU | GetNextRequestPDU |
 
 @dataclass
 class Message(Sequence):
-    version: Integer
+    version: Version
     community: OctetString
     data: Pdus
