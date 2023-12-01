@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
+import enum
 from dataclasses import dataclass
 from .base import Sequence, OctetString, Integer
 from .rfc1905 import PDUs
+
+
+class Version(Integer, enum.Enum):
+    V3 = 3
 
 
 @dataclass
@@ -25,7 +30,7 @@ class HeaderData(Sequence):
 
 @dataclass
 class SNMPv3Message(Sequence):
-    msgVersion: Integer
+    msgVersion: Version
     msgGlobalData: HeaderData
     msgSecurityParameters: OctetString
     msgData: ScopedPduData

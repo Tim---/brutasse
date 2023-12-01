@@ -3,14 +3,14 @@
 from typing import Optional
 from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString
-from ..asn1.rfc1905 import GetRequestPDU
-from ..asn1.rfc3412 import SNMPv3Message, HeaderData, ScopedPDU
+from ..asn1.rfc1905 import GetRequestPDU, ErrorStatus
+from ..asn1.rfc3412 import SNMPv3Message, HeaderData, ScopedPDU, Version
 from ..asn1.rfc3414 import UsmSecurityParameters
 
 
 def make_v3_request() -> bytes:
     return ber_build(SNMPv3Message(
-        msgVersion=Integer(3),
+        msgVersion=Version.V3,
         msgGlobalData=HeaderData(
             msgID=Integer(19049),
             msgMaxSize=Integer(65507),
@@ -32,7 +32,7 @@ def make_v3_request() -> bytes:
             contextName=OctetString(b''),
             data=GetRequestPDU(
                 request_id=Integer(14320),
-                error_status=Integer(0),
+                error_status=ErrorStatus.NO_ERROR,
                 error_index=Integer(0),
                 variable_bindings=[]
             )
