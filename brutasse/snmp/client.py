@@ -12,10 +12,11 @@ def as_string(value: _BindValue) -> str:
         case ObjectName():
             return str(value)
         case _:
-            raise NotImplementedError()
+            raise NotImplementedError(f'Unsupported type {value!r}')
 
 
-async def get_sys_info(ip: str, port: int, community: str) -> dict[str, str]:
+async def get_sys_info(ip: str, port: int, community: str
+                       ) -> tuple[str, int, dict[str, str]]:
     columns = {
         1: 'description',
         2: 'object_id',
@@ -27,5 +28,7 @@ async def get_sys_info(ip: str, port: int, community: str) -> dict[str, str]:
             for i in columns]
     async with Snmpv2c(ip, port, community) as client:
         values = await client.get(oids)
-        return {column: as_string(value)
-                for column, value in zip(columns.values(), values)}
+        res = {column: as_string(value)
+               for column, value in zip(columns.values(), values)}
+
+        return ip, port, res

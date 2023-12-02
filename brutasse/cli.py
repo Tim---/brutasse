@@ -131,8 +131,9 @@ async def snmp_info(workspace: str) -> None:
             asyncio.wait_for(get_sys_info(ip, port, community), 5)
             for ip, port, community in get_authenticated_snmp_services(db)
         ]
-        async for res in parallel_helper(coros, parallelism=100):
-            print(res)
+        async for ip, port, res in parallel_helper(coros, parallelism=100,
+                                                   ignore=TimeoutError):
+            print(f'{ip}:{port} {res}')
 
 
 @cli.group()
