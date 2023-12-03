@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
+from typing import Optional
 from brutasse.snmp.snmpv2c import Snmpv2c
-from brutasse.asn1.snmp import (ObjectIdentifier, OctetString, BindValue)
+from brutasse.asn1.snmp import (ObjectIdentifier, OctetString, ObjectSyntax)
 
 
-def as_string(value: BindValue) -> str:
+def as_string(value: Optional[ObjectSyntax]) -> str:
     match value:
         case OctetString():
             return value.decode(errors='backslashreplace')
