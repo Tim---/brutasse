@@ -6,12 +6,11 @@ from typing import Optional, Self
 from collections.abc import AsyncIterator
 import anyio
 from ..asn1.ber import ber_build, ber_parse
-from ..asn1.base import Integer, OctetString, Null
-from ..asn1.rfc1901 import Message, Version
-from ..asn1.rfc1902 import ObjectName
-from ..asn1.rfc1905 import (
-    GetRequestPDU, GetNextRequestPDU, SetRequestPDU, ResponsePDU, VarBind,
-    VarBindList, PDUs, _BindValue, ErrorStatus
+from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
+from ..asn1.snmp import (
+    Message, VarBind, GetRequestPDU, ResponsePDU,
+    GetNextRequestPDU, SetRequestPDU, PDUs, Version, ErrorStatus,
+    BindValue
 )
 
 
@@ -24,7 +23,7 @@ def make_v2c_request(community: str) -> bytes:
             error_status=ErrorStatus.NO_ERROR,
             error_index=Integer(0),
             variable_bindings=[VarBind(
-                name=ObjectName.from_string('1.3.6.1.2.1.1.5.0'),
+                name=ObjectIdentifier.from_string('1.3.6.1.2.1.1.5.0'),
                 value=Null()
             )]
         )
@@ -58,25 +57,25 @@ class Snmpv2c:
                         traceback: Optional[TracebackType]) -> None:
         await self.udp.aclose()
 
-    async def walk_branch(self, base_oid: ObjectName
+    async def walk_branch(self, base_oid: ObjectIdentifier
                           ) -> AsyncIterator[VarBind]:
         begin_oid = base_oid
 
         # tweak: oid size must be >= 2
         while len(begin_oid) < 2:
-            begin_oid = ObjectName((*begin_oid, 0))
+            begin_oid = ObjectIdentifier((*begin_oid, 0))
 
         if not base_oid:
             # tweak: oids are always lower than this
-            end_oid = ObjectName((3, ))
+            end_oid = ObjectIdentifier((3, ))
         else:
-            end_oid = ObjectName((*base_oid[:-1], base_oid[-1] + 1))
+            end_oid = ObjectIdentifier((*base_oid[:-1], base_oid[-1] + 1))
 
         async for vb in self.walk(begin_oid, end_oid):
             yield vb
 
-    async def walk(self, begin_oid: ObjectName,
-                   end_oid: ObjectName) -> AsyncIterator[VarBind]:
+    async def walk(self, begin_oid: ObjectIdentifier,
+                   end_oid: ObjectIdentifier) -> AsyncIterator[VarBind]:
         oid = begin_oid
         while True:
             vb, = await self.get_next([oid])
@@ -86,8 +85,8 @@ class Snmpv2c:
                 break
             yield vb
 
-    async def get(self, oids: list[ObjectName]
-                  ) -> list[_BindValue]:
+    async def get(self, oids: list[ObjectIdentifier]
+                  ) -> list[BindValue]:
         req_varbinds = [VarBind(name=oid, value=Null()) for oid in oids]
         resp_varbinds = await self.generic_request(GetRequestPDU, req_varbinds)
         assert len(resp_varbinds) == len(oids)
@@ -95,19 +94,19 @@ class Snmpv2c:
             assert vb.name == oid
         return [vb.value for vb in resp_varbinds]
 
-    async def get_next(self, oids: list[ObjectName]
-                       ) -> VarBindList:
+    async def get_next(self, oids: list[ObjectIdentifier]
+                       ) -> list[VarBind]:
         req_varbinds = [VarBind(name=oid, value=Null()) for oid in oids]
         resp_varbinds = await self.generic_request(GetNextRequestPDU,
                                                    req_varbinds)
         assert len(resp_varbinds) == len(oids)
         return resp_varbinds
 
-    async def get_request(self, req_varbinds: VarBindList) -> VarBindList:
+    async def get_request(self, req_varbinds: list[VarBind]) -> list[VarBind]:
         return await self.generic_request(GetRequestPDU, req_varbinds)
 
     async def generic_request(self, cls: type[GenericRequestPdu],
-                              req_varbinds: VarBindList) -> VarBindList:
+                              req_varbinds: list[VarBind]) -> list[VarBind]:
         request_id = self.request_id
         self.request_id += 1
         req = cls(

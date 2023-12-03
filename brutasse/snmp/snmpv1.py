@@ -7,10 +7,9 @@ from collections.abc import AsyncIterator
 import anyio
 from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
-from ..asn1.rfc1155 import ObjectSyntax
-from ..asn1.rfc1157 import (
-    Message, VarBind, GetRequestPDU, GetResponsePDU, GetNextRequestPDU,
-    SetRequestPDU, Pdus, VarBindList, Version, ErrorStatus
+from ..asn1.snmp import (
+    ObjectSyntax, Message, VarBind, GetRequestPDU, ResponsePDU,
+    GetNextRequestPDU, SetRequestPDU, PDUs, Version, ErrorStatus
 )
 
 
@@ -132,8 +131,8 @@ class Snmpv1:
             return result
 
     async def send_receive_request(self, cls: type[GenericRequestPdu],
-                                   req_varbinds: VarBindList
-                                   ) -> GetResponsePDU:
+                                   req_varbinds: list[VarBind]
+                                   ) -> ResponsePDU:
         request_id = self.request_id
         self.request_id += 1
         req = cls(
@@ -144,7 +143,7 @@ class Snmpv1:
         )
         resp = await self.send_receive_pdu(req)
 
-        if not isinstance(resp, GetResponsePDU):
+        if not isinstance(resp, ResponsePDU):
             raise ValueError(f'Unexpected PDU type: {resp.__class__}')
 
         if resp.request_id != request_id:
@@ -152,7 +151,7 @@ class Snmpv1:
 
         return resp
 
-    async def send_receive_pdu(self, pdu: Pdus) -> Pdus:
+    async def send_receive_pdu(self, pdu: PDUs) -> PDUs:
         for _ in range(self.retries + 1):
             await self.send_pdu(pdu)
             try:
@@ -161,7 +160,7 @@ class Snmpv1:
                 continue
         raise TimeoutError('Max retries exceeded')
 
-    async def send_pdu(self, pdu: Pdus) -> None:
+    async def send_pdu(self, pdu: PDUs) -> None:
         req = Message(
             version=Version.V1,
             community=OctetString(self.community.encode()),
@@ -169,7 +168,7 @@ class Snmpv1:
         )
         await self.udp.send(ber_build(req))
 
-    async def recv_pdu(self) -> Pdus:
+    async def recv_pdu(self) -> PDUs:
         raw = await self.udp.receive()
         resp = ber_parse(raw, Message)
         match resp:

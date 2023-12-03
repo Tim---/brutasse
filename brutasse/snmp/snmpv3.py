@@ -3,9 +3,8 @@
 from typing import Optional
 from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString
-from ..asn1.rfc1905 import GetRequestPDU, ErrorStatus
-from ..asn1.rfc3412 import SNMPv3Message, HeaderData, ScopedPDU, Version
-from ..asn1.rfc3414 import UsmSecurityParameters
+from ..asn1.snmp import (GetRequestPDU, ErrorStatus, SNMPv3Message,
+                         HeaderData, ScopedPDU, Version, UsmSecurityParameters)
 
 
 def make_v3_request() -> bytes:
