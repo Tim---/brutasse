@@ -9,7 +9,8 @@ from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
 from ..asn1.snmp import (
     ObjectSyntax, Message, VarBind, GetRequestPDU, ResponsePDU,
-    GetNextRequestPDU, SetRequestPDU, PDUs, Version, ErrorStatus
+    GetNextRequestPDU, SetRequestPDU, PDUs, Version, ErrorStatus,
+    noSuchObject, noSuchInstance, endOfMibView
 )
 
 
@@ -91,11 +92,19 @@ class Snmpv1:
         d = await self.generic_request(GetRequestPDU, oids)
         res: list[Optional[ObjectSyntax]] = []
         for oid in oids:
-            if oid in d:
-                assert d[oid].name == oid
-                res.append(d[oid].value)
-            else:
+            vb = d.get(oid)
+            if not vb:
                 res.append(None)
+                continue
+
+            assert vb.name == oid
+
+            value = vb.value
+            match value:
+                case noSuchObject() | noSuchInstance() | endOfMibView():
+                    res.append(None)
+                case _:
+                    res.append(value)
         return res
 
     async def get_next(self, oids: list[ObjectIdentifier]
@@ -103,11 +112,20 @@ class Snmpv1:
         d = await self.generic_request(GetNextRequestPDU, oids)
         res: list[Optional[VarBind]] = []
         for oid in oids:
-            if oid in d:
-                assert d[oid].name > oid
-                res.append(d[oid])
-            else:
+            vb = d.get(oid)
+            if not vb:
                 res.append(None)
+                continue
+
+            assert vb.name > oid
+
+            value = vb.value
+            match value:
+                case noSuchObject() | noSuchInstance() | endOfMibView():
+                    res.append(None)
+                case _:
+                    res.append(vb)
+
         return res
 
     async def generic_request(self, cls: type[GenericRequestPdu],
@@ -120,15 +138,14 @@ class Snmpv1:
             ])
             match resp.error_status:
                 case ErrorStatus.NO_ERROR:
-                    result = dict(zip(current_oids, resp.variable_bindings))
+                    return dict(zip(current_oids, resp.variable_bindings))
                 case ErrorStatus.NO_SUCH_NAME:
+                    assert resp.error_index
                     bad_oid = current_oids[resp.error_index-1]
                     current_oids.remove(bad_oid)
-                    continue
                 case _:
                     raise ValueError(
                         f'Unhandled SNMP error: {resp.error_status}')
-            return result
 
     async def send_receive_request(self, cls: type[GenericRequestPdu],
                                    req_varbinds: list[VarBind]
