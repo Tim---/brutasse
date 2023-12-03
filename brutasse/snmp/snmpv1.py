@@ -79,6 +79,8 @@ class Snmpv1:
         oid = begin_oid
         while True:
             vb, = await self.get_next([oid])
+            if not vb:
+                break
             assert vb.name > oid
             oid = vb.name
             if oid >= end_oid:
@@ -86,27 +88,52 @@ class Snmpv1:
             yield vb
 
     async def get(self, oids: list[ObjectIdentifier]
-                  ) -> list[ObjectSyntax]:
-        req_varbinds = [VarBind(name=oid, value=Null()) for oid in oids]
-        resp_varbinds = await self.generic_request(GetRequestPDU, req_varbinds)
-        assert len(resp_varbinds) == len(oids)
-        for oid, vb in zip(oids, resp_varbinds):
-            assert vb.name == oid
-        return [vb.value for vb in resp_varbinds]
+                  ) -> list[Optional[ObjectSyntax]]:
+        d = await self.generic_request(GetRequestPDU, oids)
+        res: list[Optional[ObjectSyntax]] = []
+        for oid in oids:
+            if oid in d:
+                assert d[oid].name == oid
+                res.append(d[oid].value)
+            else:
+                res.append(None)
+        return res
 
     async def get_next(self, oids: list[ObjectIdentifier]
-                       ) -> VarBindList:
-        req_varbinds = [VarBind(name=oid, value=Null()) for oid in oids]
-        resp_varbinds = await self.generic_request(GetNextRequestPDU,
-                                                   req_varbinds)
-        assert len(resp_varbinds) == len(oids)
-        return resp_varbinds
-
-    async def get_request(self, req_varbinds: VarBindList) -> VarBindList:
-        return await self.generic_request(GetRequestPDU, req_varbinds)
+                       ) -> list[Optional[VarBind]]:
+        d = await self.generic_request(GetNextRequestPDU, oids)
+        res: list[Optional[VarBind]] = []
+        for oid in oids:
+            if oid in d:
+                assert d[oid].name > oid
+                res.append(d[oid])
+            else:
+                res.append(None)
+        return res
 
     async def generic_request(self, cls: type[GenericRequestPdu],
-                              req_varbinds: VarBindList) -> VarBindList:
+                              oids: list[ObjectIdentifier]
+                              ) -> dict[ObjectIdentifier, VarBind]:
+        current_oids = list(oids)
+        while True:
+            resp = await self.send_receive_request(cls, [
+                VarBind(name=oid, value=Null()) for oid in current_oids
+            ])
+            match resp.error_status:
+                case ErrorStatus.NO_ERROR:
+                    result = dict(zip(current_oids, resp.variable_bindings))
+                case ErrorStatus.NO_SUCH_NAME:
+                    bad_oid = current_oids[resp.error_index-1]
+                    current_oids.remove(bad_oid)
+                    continue
+                case _:
+                    raise ValueError(
+                        f'Unhandled SNMP error: {resp.error_status}')
+            return result
+
+    async def send_receive_request(self, cls: type[GenericRequestPdu],
+                                   req_varbinds: VarBindList
+                                   ) -> GetResponsePDU:
         request_id = self.request_id
         self.request_id += 1
         req = cls(
@@ -123,12 +150,7 @@ class Snmpv1:
         if resp.request_id != request_id:
             raise ValueError(f'Unexpected request_id: {resp.request_id}')
 
-        if resp.error_status != ErrorStatus.NO_ERROR:
-            raise ValueError(f'Unexpected error_status: {resp.error_status}')
-
-        assert resp.error_index == 0
-
-        return resp.variable_bindings
+        return resp
 
     async def send_receive_pdu(self, pdu: Pdus) -> Pdus:
         for _ in range(self.retries + 1):
