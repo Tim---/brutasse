@@ -9,7 +9,7 @@ from ..asn1.ber import ber_build, ber_parse
 from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
 from ..asn1.snmp import (
     Message, VarBind, GetRequestPDU, Version, ErrorStatus, SNMPv3Message,
-    HeaderData, ScopedPDU, UsmSecurityParameters
+    HeaderData, ScopedPDU, UsmSecurityParameters, SecurityModel, MsgFlags
 )
 
 T = TypeVar('T')
@@ -63,8 +63,8 @@ def make_v3_request() -> bytes:
         msgGlobalData=HeaderData(
             msgID=Integer(19049),
             msgMaxSize=Integer(65507),
-            msgFlags=OctetString([4]),
-            msgSecurityModel=Integer(3),
+            msgFlags=OctetString([MsgFlags.REPORTABLE]),
+            msgSecurityModel=SecurityModel.USM,
         ),
         msgSecurityParameters=OctetString(ber_build(
             UsmSecurityParameters(

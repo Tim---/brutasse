@@ -197,12 +197,22 @@ class ScopedPDU(Sequence):
 ScopedPduData = ScopedPDU | OctetString
 
 
+class SecurityModel(Integer, enum.Enum):
+    USM = 3
+
+
+class MsgFlags(Integer, enum.Flag):
+    AUTH = 1
+    PRIV = 2
+    REPORTABLE = 4
+
+
 @dataclass
 class HeaderData(Sequence):
     msgID: Integer
     msgMaxSize: Integer
     msgFlags: OctetString
-    msgSecurityModel: Integer
+    msgSecurityModel: SecurityModel
 
 
 @dataclass
