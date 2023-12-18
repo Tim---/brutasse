@@ -7,7 +7,7 @@ from typing import Self, Any
 
 
 class Msg:
-    repo: dict[int, type['Msg']] = {}
+    repo: dict[int, type["Msg"]] = {}
     type_id: int
 
     def __init_subclass__(cls, /, type_id: int, **kwargs: Any):
@@ -17,11 +17,11 @@ class Msg:
 
     @classmethod
     def parse(cls, raw: bytes) -> Self:
-        op, = struct.unpack('!H', raw[:2])
+        (op,) = struct.unpack("!H", raw[:2])
         return cls.repo[op].parse_msg(raw[2:])
 
     def build(self) -> bytes:
-        return struct.pack('!H', self.type_id) + self.build_msg()
+        return struct.pack("!H", self.type_id) + self.build_msg()
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
@@ -38,12 +38,12 @@ class _Request:
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        filename, mode, opts = raw.split(b'\0', 2)
+        filename, mode, opts = raw.split(b"\0", 2)
         assert not opts  # TODO: options
         return cls(filename.decode(), mode.decode())
 
     def build_msg(self) -> bytes:
-        return f'{self.filename}\0{self.mode}\0'.encode()
+        return f"{self.filename}\0{self.mode}\0".encode()
 
 
 class ReadRequest(_Request, Msg, type_id=1):
@@ -61,11 +61,11 @@ class Data(Msg, type_id=3):
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        block_num, = struct.unpack('!H', raw[:2])
+        (block_num,) = struct.unpack("!H", raw[:2])
         return cls(block_num, raw[2:])
 
     def build_msg(self) -> bytes:
-        return struct.pack('!H', self.block_num) + self.data
+        return struct.pack("!H", self.block_num) + self.data
 
 
 @dataclass
@@ -74,11 +74,11 @@ class Ack(Msg, type_id=4):
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        block_num, = struct.unpack('!H', raw)
+        (block_num,) = struct.unpack("!H", raw)
         return cls(block_num)
 
     def build_msg(self) -> bytes:
-        return struct.pack('!H', self.block_num)
+        return struct.pack("!H", self.block_num)
 
 
 class ErrorCode(enum.IntEnum):
@@ -99,10 +99,10 @@ class Error(Msg, type_id=5):
 
     @classmethod
     def parse_msg(cls, raw: bytes) -> Self:
-        code, = struct.unpack('!H', raw[:2])
+        (code,) = struct.unpack("!H", raw[:2])
         msg = raw[2:]
         assert msg[-1] == 0
         return cls(ErrorCode(code), msg[:-1].decode())
 
     def build_msg(self) -> bytes:
-        return struct.pack('!H', self.code) + f'{self.msg}\0'.encode()
+        return struct.pack("!H", self.code) + f"{self.msg}\0".encode()

@@ -13,11 +13,11 @@ class Pkt:
 
     @classmethod
     def parse(cls, raw: bytes) -> Self:
-        version, reserved, seq, msg_cls = struct.unpack('!BBBB', raw[:4])
+        version, reserved, seq, msg_cls = struct.unpack("!BBBB", raw[:4])
         body = raw[4:]
         assert version == 6
         assert reserved == 0
         return cls(seq, msg_cls, body)
 
     def build(self) -> bytes:
-        return struct.pack('!BBBB', 6, 0, self.seq, self.msg_cls) + self.body
+        return struct.pack("!BBBB", 6, 0, self.seq, self.msg_cls) + self.body

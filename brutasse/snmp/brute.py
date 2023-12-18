@@ -19,8 +19,9 @@ def pkt_gen(ips: list[IPAddress], communities: list[str]):
                 bar.update(i)
 
 
-async def brute(ips: list[IPAddress], communities: list[str]
-                ) -> AsyncIterable[tuple[IPAddress, int, str]]:
+async def brute(
+    ips: list[IPAddress], communities: list[str]
+) -> AsyncIterable[tuple[IPAddress, int, str]]:
     async for ip, port, data in udp_scan(pkt_gen(ips, communities)):
         community = get_v2c_community(data)
         yield ip, port, community

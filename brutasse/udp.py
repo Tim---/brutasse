@@ -9,8 +9,12 @@ Addr = tuple[str, int]
 
 
 class ConnectedUdpServerHandler:
-    def __init__(self, server: 'ConnectedUdpServerProtocol', addr: Addr,
-                 queue: asyncio.Queue[bytes]):
+    def __init__(
+        self,
+        server: "ConnectedUdpServerProtocol",
+        addr: Addr,
+        queue: asyncio.Queue[bytes],
+    ):
         self.server = server
         self.addr = addr
         self.queue = queue
@@ -36,8 +40,9 @@ class ConnectedUdpServerProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         self.transport = transport
 
-    def datagram_received(self, data: bytes,
-                          addr: tuple[str | Any, int, int, int]) -> None:
+    def datagram_received(
+        self, data: bytes, addr: tuple[str | Any, int, int, int]
+    ) -> None:
         host, port = addr[0], addr[1]
         assert isinstance(host, str)
         endpoint = (host, port)
@@ -67,6 +72,7 @@ class ConnectedUdpServerProtocol(asyncio.DatagramProtocol):
         # TODO: clean up, wait for handlers ?
         pass
 
-    def create_server_handler(self, addr: Addr, queue: asyncio.Queue[bytes]
-                              ) -> ConnectedUdpServerHandler:
+    def create_server_handler(
+        self, addr: Addr, queue: asyncio.Queue[bytes]
+    ) -> ConnectedUdpServerHandler:
         raise NotImplementedError

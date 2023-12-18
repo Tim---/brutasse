@@ -4,7 +4,11 @@ import asyncio
 import argparse
 import pathlib
 from brutasse.tftp.protocol import (
-    TftpServer, RequestHandler, TftpReadRequest, TftpWriteRequest)
+    TftpServer,
+    RequestHandler,
+    TftpReadRequest,
+    TftpWriteRequest,
+)
 
 
 class Handler(RequestHandler):
@@ -43,8 +47,8 @@ class Handler(RequestHandler):
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=69)
-    parser.add_argument('directory', type=pathlib.Path)
+    parser.add_argument("--port", type=int, default=69)
+    parser.add_argument("directory", type=pathlib.Path)
     return parser.parse_args()
 
 

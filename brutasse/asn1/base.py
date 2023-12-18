@@ -19,7 +19,7 @@ class Identifier:
     number: int
 
 
-Tag = tuple[Identifier, bytes | list['Tag']]
+Tag = tuple[Identifier, bytes | list["Tag"]]
 
 
 class BaseType:
@@ -34,7 +34,7 @@ class ConstructedType(BaseType):
     pass
 
 
-T = TypeVar('T', bound=BaseType)
+T = TypeVar("T", bound=BaseType)
 
 
 def identifier(tag_class: TagClass, number: int):
@@ -42,6 +42,7 @@ def identifier(tag_class: TagClass, number: int):
         constructed = issubclass(cls, ConstructedType)
         cls.identifier = Identifier(tag_class, constructed, number)
         return cls
+
     return wrap
 
 
@@ -55,10 +56,10 @@ class Sequence(ConstructedType):
 class ObjectIdentifier(tuple[int, ...], PrimitiveType):
     @classmethod
     def from_string(cls, s: str) -> Self:
-        return cls(list(map(int, s.split('.'))))
+        return cls(list(map(int, s.split("."))))
 
     def __str__(self) -> str:
-        return '.'.join(map(str, self))
+        return ".".join(map(str, self))
 
 
 @identifier(TagClass.UNIVERSAL, 2)

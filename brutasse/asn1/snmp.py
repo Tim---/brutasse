@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 
-from .base import (TagClass, ObjectIdentifier, Integer,
-                   OctetString, Null, identifier, Sequence)
+from .base import (
+    TagClass,
+    ObjectIdentifier,
+    Integer,
+    OctetString,
+    Null,
+    identifier,
+    Sequence,
+)
 from dataclasses import dataclass
 import enum
 
@@ -41,8 +48,7 @@ class Counter64(Integer):
     pass
 
 
-ApplicationSyntax = (IpAddress | Counter32 | Gauge32 |
-                     TimeTicks | Opaque | Counter64)
+ApplicationSyntax = IpAddress | Counter32 | Gauge32 | TimeTicks | Opaque | Counter64
 
 ObjectSyntax = SimpleSyntax | ApplicationSyntax
 
@@ -90,8 +96,7 @@ class endOfMibView(Null):
     pass
 
 
-BindValue = (ObjectSyntax |
-             noSuchObject | noSuchInstance | endOfMibView)
+BindValue = ObjectSyntax | noSuchObject | noSuchInstance | endOfMibView
 
 
 @dataclass
@@ -175,9 +180,17 @@ class ReportPDU(PDU):
     pass
 
 
-PDUs = (GetRequestPDU | GetNextRequestPDU | ResponsePDU | SetRequestPDU |
-        TrapPDU | GetBulkRequestPDU | InformRequestPDU | SNMPv2TrapPDU |
-        ReportPDU)
+PDUs = (
+    GetRequestPDU
+    | GetNextRequestPDU
+    | ResponsePDU
+    | SetRequestPDU
+    | TrapPDU
+    | GetBulkRequestPDU
+    | InformRequestPDU
+    | SNMPv2TrapPDU
+    | ReportPDU
+)
 
 
 @dataclass

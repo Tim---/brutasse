@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 
-from .proto import SmiStream, Pkt, CapabilitiesReq, CapabilitiesResp, SelfConfigBackupReq, ConfigBackupReqResp, TlvSeq, TlvLocal, TlvRemote
+from .proto import (
+    SmiStream,
+    Pkt,
+    CapabilitiesReq,
+    CapabilitiesResp,
+    SelfConfigBackupReq,
+    ConfigBackupReqResp,
+    TlvSeq,
+    TlvLocal,
+    TlvRemote,
+)
 
 
 class IbdClient:
@@ -16,13 +26,18 @@ class IbdClient:
             case Pkt(version=0, body=CapabilitiesResp(1, 0)):
                 pass
             case _:
-                raise Exception(f'Unexpected message {resp}')
+                raise Exception(f"Unexpected message {resp}")
 
     async def backup_local(self):
-        req = Pkt(version=0, body=SelfConfigBackupReq(tlvs=[
-            TlvSeq(1, 0, bytes(6)),
-            TlvLocal('configure tftp-server nvram:startup-config'),
-        ]))
+        req = Pkt(
+            version=0,
+            body=SelfConfigBackupReq(
+                tlvs=[
+                    TlvSeq(1, 0, bytes(6)),
+                    TlvLocal("configure tftp-server nvram:startup-config"),
+                ]
+            ),
+        )
         await self.stream.write_msg(req)
 
         # Note: the switch will connect back on port 4786 to send a response
@@ -37,14 +52,19 @@ class IbdClient:
     async def backup_remote(self, ip: str):
         # TODO: listen with tftp server
 
-        req = Pkt(version=0, body=SelfConfigBackupReq(tlvs=[
-            TlvSeq(1, 0, bytes(6)),
-            TlvRemote(
-                'copy system:running-config flash:/config.text',
-                'copy flash:/config.text tftp://{ip}/config.text',
-                '',
+        req = Pkt(
+            version=0,
+            body=SelfConfigBackupReq(
+                tlvs=[
+                    TlvSeq(1, 0, bytes(6)),
+                    TlvRemote(
+                        "copy system:running-config flash:/config.text",
+                        "copy flash:/config.text tftp://{ip}/config.text",
+                        "",
+                    ),
+                ]
             ),
-        ]))
+        )
         await self.stream.write_msg(req)
 
         # Note: the switch will connect back on port 4786 to send a response

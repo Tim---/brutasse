@@ -8,7 +8,7 @@ from typing import Self, Any
 
 
 class Msg:
-    repo: dict[int, type['Msg']] = {}
+    repo: dict[int, type["Msg"]] = {}
     type_id: int
 
     def __init_subclass__(cls, /, type_id: int, **kwargs: Any):
@@ -24,18 +24,18 @@ class Msg:
         raise NotImplementedError
 
     @classmethod
-    async def parse_stream(cls, reader: asyncio.StreamReader) -> 'Msg':
+    async def parse_stream(cls, reader: asyncio.StreamReader) -> "Msg":
         raw_hdr = await reader.readexactly(0x13)
-        marker, length, type_ = struct.unpack('!16sHB', raw_hdr)
-        assert marker == b'\xff' * 16
+        marker, length, type_ = struct.unpack("!16sHB", raw_hdr)
+        assert marker == b"\xff" * 16
         raw_body = await reader.readexactly(length - 0x13)
         msg = Msg.repo[type_].parse(raw_body)
         return msg
 
     async def write_stream(self, writer: asyncio.StreamWriter) -> None:
-        marker = b'\xff' * 16
+        marker = b"\xff" * 16
         body = self.build()
-        raw = struct.pack('!16sHB', marker, 0x13 + len(body), self.type_id)
+        raw = struct.pack("!16sHB", marker, 0x13 + len(body), self.type_id)
         writer.write(raw + body)
         await writer.drain()
 
@@ -51,15 +51,16 @@ class Open(Msg, type_id=1):
     @classmethod
     def parse(cls, raw: bytes) -> Self:
         version, asn, hold_time, bgp_id, opt_parm_len = struct.unpack(
-            '!BHHIB', raw[:10]
+            "!BHHIB", raw[:10]
         )
         raw_opts = raw[10:]
         assert len(raw_opts) == opt_parm_len
         return cls(version, asn, hold_time, ipaddress.IPv4Address(bgp_id), raw_opts)
 
     def build(self) -> bytes:
-        hdr = struct.pack('!BHHIB', self.version, self.asn,
-                          self.hold_time, int(self.bgp_id), 0)
+        hdr = struct.pack(
+            "!BHHIB", self.version, self.asn, self.hold_time, int(self.bgp_id), 0
+        )
         return hdr
 
 
@@ -83,12 +84,12 @@ class Notification(Msg, type_id=3):
 
     @classmethod
     def parse(cls, raw: bytes) -> Self:
-        code, subcode = struct.unpack('!BB', raw[:2])
+        code, subcode = struct.unpack("!BB", raw[:2])
         data = raw[2:]
         return cls(code, subcode, data)
 
     def build(self) -> bytes:
-        hdr = struct.pack('!BB', self.code, self.subcode)
+        hdr = struct.pack("!BB", self.code, self.subcode)
         return hdr + self.data
 
 
@@ -100,7 +101,7 @@ class Keepalive(Msg, type_id=4):
         return cls()
 
     def build(self) -> bytes:
-        return b''
+        return b""
 
 
 class BgpStream:

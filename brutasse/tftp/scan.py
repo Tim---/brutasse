@@ -7,9 +7,10 @@ from .packet import Msg, ReadRequest
 from ..scan import zmap
 
 
-async def tftp_scan(ranges: list[IPv4Network], rate: int
-                    ) -> AsyncIterator[tuple[IPv4Address, Msg]]:
-    req = ReadRequest(filename='iamafilename', mode='octet').build()
+async def tftp_scan(
+    ranges: list[IPv4Network], rate: int
+) -> AsyncIterator[tuple[IPv4Address, Msg]]:
+    req = ReadRequest(filename="iamafilename", mode="octet").build()
     async for saddr, data in zmap.udp_scan(ranges, rate, port=69, payload=req):
         try:
             pkt = Msg.parse(data)

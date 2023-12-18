@@ -32,27 +32,25 @@ class Common:
                 return resp
             except TimeoutError:
                 continue
-        raise TimeoutError('Max retries exceeded')
+        raise TimeoutError("Max retries exceeded")
 
     def check_resp_data(self, resp: Msg, expected_block: int) -> bytes:
         match resp:
             case Error(code, msg):
-                raise Exception(f'Peer returned tftp error {code}: {msg}')
+                raise Exception(f"Peer returned tftp error {code}: {msg}")
             case Data(block_num, data) if block_num == expected_block:
                 return data
             case _:
-                raise NotImplementedError(
-                    f'Unexpected response {resp}')
+                raise NotImplementedError(f"Unexpected response {resp}")
 
     def check_resp_ack(self, resp: Msg, expected_block: int) -> None:
         match resp:
             case Error(code, msg):
-                raise Exception(f'Peer returned tftp error {code}: {msg}')
+                raise Exception(f"Peer returned tftp error {code}: {msg}")
             case Ack(block_num) if block_num == expected_block:
                 pass
             case _:
-                raise NotImplementedError(
-                    f'Unexpected response {resp}')
+                raise NotImplementedError(f"Unexpected response {resp}")
 
     async def recv_data(self, first_resp: Msg) -> bytes:
         res = bytearray()
@@ -71,8 +69,8 @@ class Common:
         return bytes(res)
 
     def chunkify(self, data: bytes) -> Iterator[bytes]:
-        for i in range(0, len(data)+1, self.block_size):
-            yield data[i:i+self.block_size]
+        for i in range(0, len(data) + 1, self.block_size):
+            yield data[i: i + self.block_size]
 
     async def send_data(self, data: bytes) -> None:
         for send_block, block in zip(itertools.count(1), self.chunkify(data)):
@@ -93,13 +91,14 @@ class Client(Common):
         raw = await self.udp.receive()
         return Msg.parse(raw)
 
-    async def get_file(self, filename: str, mode: str = 'netascii') -> bytes:
+    async def get_file(self, filename: str, mode: str = "netascii") -> bytes:
         req = ReadRequest(filename=filename, mode=mode)
         resp = await self.send_receive(req)
         return await self.recv_data(resp)
 
-    async def put_file(self, filename: str, data: bytes,
-                       mode: str = 'netascii') -> None:
+    async def put_file(
+        self, filename: str, data: bytes, mode: str = "netascii"
+    ) -> None:
         req = WriteRequest(filename=filename, mode=mode)
         resp = await self.send_receive(req)
         self.check_resp_ack(resp, 0)
@@ -113,15 +112,13 @@ class Client(Common):
 
 
 class TftpRequest:
-    def __init__(self, server_handler: 'TftpServerHandler',
-                 filename: str, mode: str):
+    def __init__(self, server_handler: "TftpServerHandler", filename: str, mode: str):
         self.server_handler = server_handler
         self.filename = filename
         self.mode = mode
 
     async def reject(self) -> None:
-        await self.server_handler.send_msg(
-            Error(ErrorCode.NOT_DEFINED, 'oh noes'))
+        await self.server_handler.send_msg(Error(ErrorCode.NOT_DEFINED, "oh noes"))
 
 
 class TftpReadRequest(TftpRequest):
@@ -151,9 +148,13 @@ class RequestHandler:
 
 
 class TftpServerHandler(ConnectedUdpServerHandler, Common):
-    def __init__(self, server: 'ConnectedUdpServerProtocol', addr: Addr,
-                 queue: asyncio.Queue[bytes],
-                 request_handler: RequestHandler):
+    def __init__(
+        self,
+        server: "ConnectedUdpServerProtocol",
+        addr: Addr,
+        queue: asyncio.Queue[bytes],
+        request_handler: RequestHandler,
+    ):
         super().__init__(server, addr, queue)
         self.request_handler = request_handler
 
@@ -171,7 +172,7 @@ class TftpServerHandler(ConnectedUdpServerHandler, Common):
             case WriteRequest(filename, mode):
                 req = TftpWriteRequest(self, filename, mode)
             case _:
-                raise ValueError(f'Unexpected message {msg}')
+                raise ValueError(f"Unexpected message {msg}")
         await req.run()
 
 
@@ -180,14 +181,14 @@ class TftpServerProtocol(ConnectedUdpServerProtocol):
         super().__init__()
         self.request_handler = request_handler
 
-    def create_server_handler(self, addr: Addr, queue: asyncio.Queue[bytes]
-                              ) -> ConnectedUdpServerHandler:
+    def create_server_handler(
+        self, addr: Addr, queue: asyncio.Queue[bytes]
+    ) -> ConnectedUdpServerHandler:
         return TftpServerHandler(self, addr, queue, self.request_handler)
 
 
 class TftpServer:
-    def __init__(self, request_handler: RequestHandler,
-                 ip: str = '::', port: int = 69):
+    def __init__(self, request_handler: RequestHandler, ip: str = "::", port: int = 69):
         self.ip = ip
         self.port = port
         self.request_handler = request_handler
@@ -196,9 +197,13 @@ class TftpServer:
         loop = asyncio.get_running_loop()
         self.transport, self.protocol = await loop.create_datagram_endpoint(
             lambda: TftpServerProtocol(self.request_handler),
-            local_addr=(self.ip, self.port))
+            local_addr=(self.ip, self.port),
+        )
 
-    async def __aexit__(self, exc_type: Optional[type[BaseException]],
-                        exc_value: Optional[BaseException],
-                        traceback: Optional[TracebackType]) -> None:
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         self.transport.close()

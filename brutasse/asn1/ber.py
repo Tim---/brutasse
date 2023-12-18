@@ -3,9 +3,17 @@
 from typing import Optional
 from typing import overload, TypeVar
 from types import UnionType, GenericAlias
-from .base import (Tag, TagClass, Identifier,
-                   Sequence, ObjectIdentifier, Integer,
-                   OctetString, Null, BaseType)
+from .base import (
+    Tag,
+    TagClass,
+    Identifier,
+    Sequence,
+    ObjectIdentifier,
+    Integer,
+    OctetString,
+    Null,
+    BaseType,
+)
 
 # Framing
 
@@ -16,7 +24,7 @@ class InStream:
         self.data = data
 
     def read_bytes(self, size: int) -> bytes:
-        res = self.data[self.cursor:self.cursor+size]
+        res = self.data[self.cursor : self.cursor + size]
         assert len(res) == size
         self.cursor += size
         return res
@@ -25,29 +33,28 @@ class InStream:
         return self.cursor == len(self.data)
 
     def read_byte(self) -> int:
-        b, = self.read_bytes(1)
+        (b,) = self.read_bytes(1)
         return b
 
     def read_integer(self, size: int):
-        return int.from_bytes(self.read_bytes(size), 'big')
+        return int.from_bytes(self.read_bytes(size), "big")
 
     def read_base128(self) -> int:
         n = 0
         while True:
             b = self.read_byte()
-            n = (n * 0x80) + (b & 0x7f)
+            n = (n * 0x80) + (b & 0x7F)
             if not b & 0x80:
                 return n
 
     def parse_identifier(self) -> Identifier:
         identifier = self.read_byte()
 
-        tag_number = identifier & 0x1f
-        if tag_number == 0x1f:
+        tag_number = identifier & 0x1F
+        if tag_number == 0x1F:
             tag_number = self.read_base128()
 
-        id_ = Identifier(TagClass(identifier >> 6), bool(
-            identifier & 0x20), tag_number)
+        id_ = Identifier(TagClass(identifier >> 6), bool(identifier & 0x20), tag_number)
 
         return id_
 
@@ -58,7 +65,7 @@ class InStream:
             return None
 
         if length & 0x80:
-            length_length = length & 0x7f
+            length_length = length & 0x7F
             length = self.read_integer(length_length)
         return length
 
@@ -76,7 +83,7 @@ class InStream:
             else:
                 data = self.read_bytes(length)
 
-            if id_ == Identifier(TagClass.UNIVERSAL, False, 0) and data == b'':
+            if id_ == Identifier(TagClass.UNIVERSAL, False, 0) and data == b"":
                 break
 
             res.append((id_, data))
@@ -105,20 +112,18 @@ class OutStream:
     def build_identifier(self, identifier: Identifier) -> None:
         tag_number = identifier.number
         if tag_number >= 0x20:
-            tag_number = 0x1f
+            tag_number = 0x1F
 
-        b = ((identifier.class_ << 6)
-             + identifier.constructed * 0x20
-             + tag_number)
+        b = (identifier.class_ << 6) + identifier.constructed * 0x20 + tag_number
 
         self.write_byte(b)
-        if tag_number == 0x1f:
+        if tag_number == 0x1F:
             self.write_base128(identifier.number)
 
     def build_length(self, length: int) -> None:
         if length >= 0x80:
             length_length = (length.bit_length() + 7) // 8
-            self.write_bytes(length.to_bytes(length_length, 'big'))
+            self.write_bytes(length.to_bytes(length_length, "big"))
         else:
             self.write_byte(length)
 
@@ -146,10 +151,11 @@ def parse_ber_tags(raw: bytes) -> list[Tag]:
     assert stream.is_eof()
     return res
 
+
 # Encoding
 
 
-T = BaseType | list['T']
+T = BaseType | list["T"]
 
 
 def build_oid(obj: ObjectIdentifier) -> bytes:
@@ -191,38 +197,39 @@ def parse(tag: Tag, cls: UnionType | GenericAlias | type[T]) -> T:
         # Sequence Of
         assert isinstance(data, list)
         assert cls.__origin__ == list
-        subcls, = cls.__args__
+        (subcls,) = cls.__args__
         return [parse(subtag, subcls) for subtag in data]
 
     assert identifier == cls.identifier
     if issubclass(cls, Sequence):
         assert isinstance(data, list)
-        return cls(**{
-            name: parse(subtag, field.type)
-            for (name, field), subtag
-            in zip(cls.__dataclass_fields__.items(), data)
-        })
+        return cls(
+            **{
+                name: parse(subtag, field.type)
+                for (name, field), subtag in zip(cls.__dataclass_fields__.items(), data)
+            }
+        )
 
     assert isinstance(data, bytes)
     if issubclass(cls, ObjectIdentifier):
         return parse_oid(data)
     elif issubclass(cls, Integer):
-        n = int.from_bytes(data, 'big', signed=True)
+        n = int.from_bytes(data, "big", signed=True)
         return cls(n)
     elif issubclass(cls, OctetString):
         return cls(data)
     elif issubclass(cls, Null):
-        assert data == b''
+        assert data == b""
         return cls()
 
-    raise NotImplementedError(f'{cls}')
+    raise NotImplementedError(f"{cls}")
 
 
 A = Sequence | ObjectIdentifier | Integer | OctetString | Null
-U = A | list['U']
+U = A | list["U"]
 
 
-def build_univ(obj: A) -> bytes | list['Tag']:
+def build_univ(obj: A) -> bytes | list["Tag"]:
     match obj:
         case Sequence():
             return list(map(build, obj.__dict__.values()))
@@ -230,11 +237,11 @@ def build_univ(obj: A) -> bytes | list['Tag']:
             return build_oid(obj)
         case Integer():
             length = (obj + (obj < 0)).bit_length() // 8 + 1
-            return obj.to_bytes(length, 'big')
+            return obj.to_bytes(length, "big")
         case OctetString():
             return bytes(obj)
         case Null():
-            return b''
+            return b""
     raise NotImplementedError()
 
 
@@ -249,13 +256,16 @@ def build(obj: U) -> Tag:
 
 # Public API
 
-Q = TypeVar('Q', bound=BaseType)
+Q = TypeVar("Q", bound=BaseType)
+
+
 @overload
-def ber_parse(raw: bytes, cls: type[Q]) -> Q: ...
+def ber_parse(raw: bytes, cls: type[Q]) -> Q:
+    ...
 
 
 def ber_parse(raw: bytes, cls: UnionType | GenericAlias | type[T]) -> T:
-    tag, = parse_ber_tags(raw)
+    (tag,) = parse_ber_tags(raw)
     return parse(tag, cls)
 
 
