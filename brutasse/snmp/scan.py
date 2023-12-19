@@ -11,6 +11,7 @@ from ..asn1.snmp import (
     Message,
     VarBind,
     GetRequestPDU,
+    ResponsePDU,
     Version,
     ErrorStatus,
     SNMPv3Message,
@@ -46,6 +47,9 @@ def make_v1_request(community: str) -> bytes:
 
 def get_v1_community(raw: bytes) -> str:
     msg = ber_parse(raw, Message)
+    assert isinstance(msg.data, ResponsePDU)
+    if msg.data.error_status != ErrorStatus.NO_ERROR:
+        raise PermissionError(f"Received error {msg.data.error_status}")
     return msg.community.decode()
 
 
@@ -71,6 +75,9 @@ def make_v2c_request(community: str) -> bytes:
 
 def get_v2c_community(raw: bytes) -> str:
     msg = ber_parse(raw, Message)
+    assert isinstance(msg.data, ResponsePDU)
+    if msg.data.error_status != ErrorStatus.NO_ERROR:
+        raise PermissionError(f"Received error {msg.data.error_status}")
     return msg.community.decode()
 
 
@@ -140,7 +147,7 @@ async def snmp_scan_common(
             decoded = decoder(data)
             yield saddr, decoded
         except Exception as e:
-            logging.error(e, exc_info=True)
+            logging.error(e)
 
 
 def scan_v1(
