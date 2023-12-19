@@ -16,7 +16,7 @@ class Msg:
         cls.type_id = type_id
 
     @classmethod
-    def parse(cls, raw: bytes) -> Self:
+    def parse(cls, raw: bytes) -> "Msg":
         (op,) = struct.unpack("!H", raw[:2])
         return cls.repo[op].parse_msg(raw[2:])
 
