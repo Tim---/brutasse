@@ -3,7 +3,7 @@
 from typing import AsyncIterable
 from ..utils import IPAddress
 from ..scan.ip import udp_scan
-from .snmpv2c import make_v2c_request, get_v2c_community
+from .scan import make_v2c_request, get_v2c_community
 import progressbar
 
 
