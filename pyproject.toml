@@ -8,12 +8,9 @@ version = "0.0.1"
 dependencies = [
     "progressbar2",
     "termcolor",
-    "aiohttp",
     "asyncssh",
     "sqlalchemy",
     "pyyaml",
-    "pyasn1",
-    "pyasn1-modules",
     "pyroute2",
     "psycopg2",
     "click",
