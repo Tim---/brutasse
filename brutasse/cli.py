@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 
-from .msf import Note, Service
-from .snmp.client import get_sys_info
 import asyncio
-import click
-from ipaddress import IPv4Network, IPv4Address, ip_address
-from typing import Any, cast, TypeVar, Optional
-from collections.abc import AsyncIterable, Collection, Coroutine, AsyncIterator
-from brutasse.bgp.info import bgp_open_info
 import json
 import logging
 import types
+from collections.abc import AsyncIterable, AsyncIterator, Collection, Coroutine
+from ipaddress import IPv4Address, IPv4Network, ip_address
+from typing import Any, Optional, TypeVar, cast
+
+import click
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
-from .snmp.scan import scan_v1, scan_v2c, scan_v3
-from .snmp.brute import brute
-from .tftp.scan import tftp_scan
-from .tftp.enum import enumerate_files
-from .msf import Metasploit
+
+from brutasse.bgp.info import bgp_open_info
+
+from .msf import Metasploit, Note, Service
 from .parallel import progressbar_execute
+from .snmp.brute import brute
+from .snmp.client import get_sys_info
+from .snmp.scan import scan_v1, scan_v2c, scan_v3
+from .tftp.enum import enumerate_files
+from .tftp.scan import tftp_scan
 from .utils import ConnectionFailed, coro
 
 
@@ -67,7 +69,7 @@ async def tftp_enum(workspace: str) -> None:
             (ip_address(service.host.address), service.port) for service in services
         )
         coros = [enumerate_files(ip, port, files=files) for ip, port in addresses]
-        async for (ip, filenames) in parallel_helper(coros, 100, ignore=TimeoutError):
+        async for ip, filenames in parallel_helper(coros, 100, ignore=TimeoutError):
             for filename in filenames:
                 print(ip, filename)
 

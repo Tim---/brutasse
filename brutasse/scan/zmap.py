@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import json
-from ipaddress import IPv4Address, IPv4Network
-from collections.abc import AsyncIterator
-from asyncio.subprocess import create_subprocess_exec, PIPE
-from ..utils import get_default_interface, argunparse
 import os
+from asyncio.subprocess import PIPE, create_subprocess_exec
+from collections.abc import AsyncIterator
+from ipaddress import IPv4Address, IPv4Network
+
+from ..utils import argunparse, get_default_interface
 
 
 async def zmap_scan(

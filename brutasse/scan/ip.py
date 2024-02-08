@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
-from typing import Optional
-from collections.abc import Iterable, AsyncIterator
-from typing import Any
-from ..utils import IPAddress, ipv6_to_ip, ip_to_ipv6
+from collections.abc import AsyncIterator, Iterable
 from ipaddress import IPv6Address
+from typing import Any, Optional
+
+from ..utils import IPAddress, ip_to_ipv6, ipv6_to_ip
 
 Addr = tuple[IPAddress, int]
 Pkt = tuple[IPAddress, int, bytes]

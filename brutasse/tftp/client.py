@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import sys
-import asyncio
 import argparse
+import asyncio
+import sys
+
 from brutasse.tftp.protocol import Client
 
 

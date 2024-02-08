@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-from typing import Optional
-from typing import overload, TypeVar
-from types import UnionType, GenericAlias
+from types import GenericAlias, UnionType
+from typing import Optional, TypeVar, overload
+
 from .base import (
+    BaseType,
+    Identifier,
+    Integer,
+    Null,
+    ObjectIdentifier,
+    OctetString,
+    Sequence,
     Tag,
     TagClass,
-    Identifier,
-    Sequence,
-    ObjectIdentifier,
-    Integer,
-    OctetString,
-    Null,
-    BaseType,
 )
 
 # Framing
@@ -260,8 +260,7 @@ Q = TypeVar("Q", bound=BaseType)
 
 
 @overload
-def ber_parse(raw: bytes, cls: type[Q]) -> Q:
-    ...
+def ber_parse(raw: bytes, cls: type[Q]) -> Q: ...
 
 
 def ber_parse(raw: bytes, cls: UnionType | GenericAlias | type[T]) -> T:

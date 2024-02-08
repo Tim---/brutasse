@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import asyncio
+from collections.abc import AsyncIterator, Collection, Coroutine, Iterable
 from typing import TypeVar
-from collections.abc import Coroutine, Iterable, AsyncIterator, Collection
+
 import progressbar
 from termcolor import colored
 

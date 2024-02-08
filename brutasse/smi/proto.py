@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import struct
 import asyncio
-from dataclasses import dataclass
-from typing import Self, Any
 import enum
+import struct
+from dataclasses import dataclass
+from typing import Any, Self
 
 
 class From(enum.IntEnum):

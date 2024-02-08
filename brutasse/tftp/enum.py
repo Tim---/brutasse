@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
+
 from anyio import create_connected_udp_socket
-from .packet import Msg, ReadRequest, Error, Data, ErrorCode
+
 from ..utils import IPAddress
+from .packet import Data, Error, ErrorCode, Msg, ReadRequest
 
 
 async def enumerate_files(

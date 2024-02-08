@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 
 import asyncio
+from collections.abc import AsyncIterator
 from types import TracebackType
 from typing import Optional, Self
-from collections.abc import AsyncIterator
-import anyio
-from ..asn1.ber import ber_build, ber_parse
-from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
-from ..asn1.snmp import (
-    ObjectSyntax,
-    Message,
-    VarBind,
-    GetRequestPDU,
-    ResponsePDU,
-    GetNextRequestPDU,
-    SetRequestPDU,
-    PDUs,
-    Version,
-    ErrorStatus,
-    noSuchObject,
-    noSuchInstance,
-    endOfMibView,
-)
 
+import anyio
+
+from ..asn1.base import Integer, Null, ObjectIdentifier, OctetString
+from ..asn1.ber import ber_build, ber_parse
+from ..asn1.snmp import (
+    ErrorStatus,
+    GetNextRequestPDU,
+    GetRequestPDU,
+    Message,
+    ObjectSyntax,
+    PDUs,
+    ResponsePDU,
+    SetRequestPDU,
+    VarBind,
+    Version,
+    endOfMibView,
+    noSuchInstance,
+    noSuchObject,
+)
 
 GenericRequestPdu = GetRequestPDU | GetNextRequestPDU | SetRequestPDU
 

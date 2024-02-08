@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import asyncio
-import struct
 import ipaddress
+import struct
 from dataclasses import dataclass
-from typing import Self, Any
+from typing import Any, Self
 
 
 class Msg:

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import struct
 import enum
+import struct
 from dataclasses import dataclass
-from typing import Self, Any
+from typing import Any, Self
 
 
 class Msg:

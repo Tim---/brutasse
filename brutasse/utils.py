@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import asyncio
-import errno
-import resource
 import contextlib
-from ipaddress import IPv4Address, IPv6Address, IPv6Network
+import errno
 import functools
-from typing import TextIO, ParamSpec, TypeVar
-from collections.abc import Iterable, Callable, Coroutine
+import resource
+from collections.abc import Callable, Coroutine, Iterable
+from ipaddress import IPv4Address, IPv6Address, IPv6Network
+from typing import ParamSpec, TextIO, TypeVar
+
 from pyroute2 import NDB
 
 IPAddress = IPv4Address | IPv6Address

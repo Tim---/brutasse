@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import logging
+from ipaddress import IPv4Address, IPv4Network
 from typing import AsyncIterator
-from ipaddress import IPv4Network, IPv4Address
-from .packet import Msg, ReadRequest
+
 from ..scan import zmap
+from .packet import Msg, ReadRequest
 
 
 async def tftp_scan(

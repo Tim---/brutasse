@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from typing import Self, TypeVar
-from dataclasses import dataclass
 import enum
+from dataclasses import dataclass
+from typing import Self, TypeVar
 
 
 class TagClass(enum.IntEnum):

@@ -2,8 +2,9 @@
 
 import asyncio
 import ipaddress
+
+from ..utils import IPAddress, tcp_connect
 from .proto import BgpStream, Notification, Open
-from ..utils import tcp_connect, IPAddress
 
 
 async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:

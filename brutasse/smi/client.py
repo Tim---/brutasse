@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 from .proto import (
-    SmiStream,
-    Pkt,
     CapabilitiesReq,
     CapabilitiesResp,
-    SelfConfigBackupReq,
     ConfigBackupReqResp,
-    TlvSeq,
+    Pkt,
+    SelfConfigBackupReq,
+    SmiStream,
     TlvLocal,
     TlvRemote,
+    TlvSeq,
 )
 
 

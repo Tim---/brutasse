@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 
 import logging
-from typing import TypeVar, Optional
-from ipaddress import IPv4Network, IPv4Address
-from collections.abc import Callable, AsyncIterator
-from ..scan import zmap
+from collections.abc import AsyncIterator, Callable
+from ipaddress import IPv4Address, IPv4Network
+from typing import Optional, TypeVar
+
+from ..asn1.base import Integer, Null, ObjectIdentifier, OctetString
 from ..asn1.ber import ber_build, ber_parse
-from ..asn1.base import Integer, OctetString, ObjectIdentifier, Null
 from ..asn1.snmp import (
-    Message,
-    VarBind,
-    GetRequestPDU,
-    ResponsePDU,
-    Version,
     ErrorStatus,
-    SNMPv3Message,
+    GetRequestPDU,
     HeaderData,
-    ScopedPDU,
-    UsmSecurityParameters,
-    SecurityModel,
+    Message,
     MsgFlags,
+    ResponsePDU,
+    ScopedPDU,
+    SecurityModel,
+    SNMPv3Message,
+    UsmSecurityParameters,
+    VarBind,
+    Version,
 )
+from ..scan import zmap
 
 T = TypeVar("T")
 

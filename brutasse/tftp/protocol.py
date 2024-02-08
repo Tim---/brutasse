@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
 import asyncio
-import itertools
 import contextlib
-from types import TracebackType
-import anyio
-from typing import Optional
+import itertools
 from collections.abc import Iterator
+from types import TracebackType
+from typing import Optional
+
+import anyio
 from anyio.abc import ConnectedUDPSocket
-from .packet import Msg, ReadRequest, WriteRequest, Ack, Error, Data, ErrorCode
-from ..udp import ConnectedUdpServerProtocol, ConnectedUdpServerHandler, Addr
+
+from ..udp import Addr, ConnectedUdpServerHandler, ConnectedUdpServerProtocol
+from .packet import Ack, Data, Error, ErrorCode, Msg, ReadRequest, WriteRequest
 
 
 class Common:
@@ -70,7 +72,7 @@ class Common:
 
     def chunkify(self, data: bytes) -> Iterator[bytes]:
         for i in range(0, len(data) + 1, self.block_size):
-            yield data[i: i + self.block_size]
+            yield data[i : i + self.block_size]
 
     async def send_data(self, data: bytes) -> None:
         for send_block, block in zip(itertools.count(1), self.chunkify(data)):

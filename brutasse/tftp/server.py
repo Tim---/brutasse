@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import asyncio
 import argparse
+import asyncio
 import pathlib
+
 from brutasse.tftp.protocol import (
-    TftpServer,
     RequestHandler,
     TftpReadRequest,
+    TftpServer,
     TftpWriteRequest,
 )
 

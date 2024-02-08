@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 from typing import AsyncIterable
-from ..utils import IPAddress
-from ..scan.ip import udp_scan
-from .scan import make_v2c_request, get_v2c_community
+
 import progressbar
+
+from ..scan.ip import udp_scan
+from ..utils import IPAddress
+from .scan import get_v2c_community, make_v2c_request
 
 
 def pkt_gen(ips: list[IPAddress], communities: list[str]):

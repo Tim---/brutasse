@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-from .base import (
-    TagClass,
-    ObjectIdentifier,
-    Integer,
-    OctetString,
-    Null,
-    identifier,
-    Sequence,
-)
-from dataclasses import dataclass
 import enum
+from dataclasses import dataclass
+
+from .base import (
+    Integer,
+    Null,
+    ObjectIdentifier,
+    OctetString,
+    Sequence,
+    TagClass,
+    identifier,
+)
 
 SimpleSyntax = Integer | OctetString | ObjectIdentifier | Null
 

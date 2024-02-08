@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
-from types import TracebackType
-import yaml
 from pathlib import Path
-from sqlalchemy import create_engine, URL, ForeignKey, select, ScalarResult
+from types import TracebackType
+from typing import Any, Optional, Self, Type, TypeVar
+
+import yaml
+from sqlalchemy import URL, ForeignKey, ScalarResult, create_engine, select
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import (
-    Session,
     DeclarativeBase,
     Mapped,
-    relationship,
-    mapped_column,
+    Session,
     joinedload,
+    mapped_column,
+    relationship,
 )
-from sqlalchemy.dialects.postgresql import INET
-from typing import Optional, Self, Type, TypeVar, Any
 
 
 class Base(DeclarativeBase):
