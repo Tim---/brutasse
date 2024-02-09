@@ -4,12 +4,11 @@ import asyncio
 import ipaddress
 
 from ..utils import IPAddress, tcp_connect
-from .proto import BgpStream, Notification, Open
+from .proto import Msg, Notification, Open
 
 
 async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:
-    reader, writer = await tcp_connect(ip, port, timeout=timeout)
-    stream = BgpStream(reader, writer)
+    stream = await tcp_connect(ip, port, timeout=timeout)
     try:
         req = Open(
             version=4,
@@ -18,9 +17,9 @@ async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:
             bgp_id=ipaddress.IPv4Address("10.10.10.10"),
             opts=b"",
         )
-        await stream.write_msg(req)
+        await req.write_stream(stream)
 
-        resp = await asyncio.wait_for(stream.read_msg(), timeout)
+        resp = await asyncio.wait_for(Msg.parse_stream(stream), timeout)
         match resp:
             case Open(asn=asn, bgp_id=bgp_id):
                 return f"{ip} asn={asn} id={bgp_id}"

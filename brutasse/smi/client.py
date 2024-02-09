@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
+from ..utils import Stream
 from .proto import (
     CapabilitiesReq,
     CapabilitiesResp,
     ConfigBackupReqResp,
     Pkt,
     SelfConfigBackupReq,
-    SmiStream,
     TlvLocal,
     TlvRemote,
     TlvSeq,
@@ -14,14 +14,14 @@ from .proto import (
 
 
 class IbdClient:
-    def __init__(self, stream: SmiStream):
+    def __init__(self, stream: Stream):
         self.stream = stream
 
     async def get_capabilities(self):
         req = Pkt(version=1, body=CapabilitiesReq(1, 0))
-        await self.stream.write_msg(req)
+        await req.build_stream(self.stream)
 
-        resp = await self.stream.read_msg()
+        resp = await Pkt.parse_stream(self.stream)
         match resp:
             case Pkt(version=0, body=CapabilitiesResp(1, 0)):
                 pass
@@ -38,14 +38,14 @@ class IbdClient:
                 ]
             ),
         )
-        await self.stream.write_msg(req)
+        await req.build_stream(self.stream)
 
         # Note: the switch will connect back on port 4786 to send a response
 
         # TODO: do the tftp get
 
         req = Pkt(version=0, body=ConfigBackupReqResp(result=1))
-        await self.stream.write_msg(req)
+        await req.build_stream(self.stream)
 
         # Note: the switch will connect back on port 4786 to send a response
 
@@ -65,6 +65,6 @@ class IbdClient:
                 ]
             ),
         )
-        await self.stream.write_msg(req)
+        await req.build_stream(self.stream)
 
         # Note: the switch will connect back on port 4786 to send a response

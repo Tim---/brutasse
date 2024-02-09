@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import asyncio
 import enum
 import struct
 from dataclasses import dataclass
 from typing import Any, Self
+
+from ..utils import Stream
 
 
 class From(enum.IntEnum):
@@ -172,7 +173,7 @@ class Pkt:
     body: Msg
 
     @classmethod
-    async def parse_stream(cls, reader: asyncio.StreamReader) -> Self:
+    async def parse_stream(cls, reader: Stream) -> Self:
         raw_hdr = await reader.readexactly(0x10)
         from_, version, type_, size = struct.unpack("!IIII", raw_hdr)
         raw_body = await reader.readexactly(size)
@@ -180,7 +181,7 @@ class Pkt:
         body = Msg.repo[From(from_), type_].parse(raw_body)
         return cls(version, body)
 
-    async def build_stream(self, writer: asyncio.StreamWriter) -> None:
+    async def build_stream(self, writer: Stream) -> None:
         raw_body = self.body.build()
         raw_hdr = struct.pack(
             "!IIII",
@@ -191,19 +192,3 @@ class Pkt:
         )
         writer.write(raw_hdr + raw_body)
         await writer.drain()
-
-
-class SmiStream:
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        self.reader = reader
-        self.writer = writer
-
-    async def read_msg(self) -> Pkt:
-        return await Pkt.parse_stream(self.reader)
-
-    async def write_msg(self, msg: Pkt) -> None:
-        return await msg.build_stream(self.writer)
-
-    async def close(self) -> None:
-        self.writer.close()
-        await self.writer.wait_closed()

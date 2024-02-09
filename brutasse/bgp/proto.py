@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import asyncio
 import ipaddress
 import struct
 from dataclasses import dataclass
 from typing import Any, Self
+
+from ..utils import Stream
 
 
 class Msg:
@@ -24,20 +25,20 @@ class Msg:
         raise NotImplementedError
 
     @classmethod
-    async def parse_stream(cls, reader: asyncio.StreamReader) -> "Msg":
-        raw_hdr = await reader.readexactly(0x13)
+    async def parse_stream(cls, stream: Stream) -> "Msg":
+        raw_hdr = await stream.readexactly(0x13)
         marker, length, type_ = struct.unpack("!16sHB", raw_hdr)
         assert marker == b"\xff" * 16
-        raw_body = await reader.readexactly(length - 0x13)
+        raw_body = await stream.readexactly(length - 0x13)
         msg = Msg.repo[type_].parse(raw_body)
         return msg
 
-    async def write_stream(self, writer: asyncio.StreamWriter) -> None:
+    async def write_stream(self, stream: Stream) -> None:
         marker = b"\xff" * 16
         body = self.build()
         raw = struct.pack("!16sHB", marker, 0x13 + len(body), self.type_id)
-        writer.write(raw + body)
-        await writer.drain()
+        stream.write(raw + body)
+        await stream.drain()
 
 
 @dataclass
@@ -102,19 +103,3 @@ class Keepalive(Msg, type_id=4):
 
     def build(self) -> bytes:
         return b""
-
-
-class BgpStream:
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        self.reader = reader
-        self.writer = writer
-
-    async def read_msg(self) -> Msg:
-        return await Msg.parse_stream(self.reader)
-
-    async def write_msg(self, msg: Msg) -> None:
-        return await msg.write_stream(self.writer)
-
-    async def close(self) -> None:
-        self.writer.close()
-        await self.writer.wait_closed()

@@ -20,11 +20,31 @@ class ConnectionFailed(Exception):
         super().__init__(f"Connection to {ip}:{port} failed ({reason})")
 
 
-async def tcp_connect(
-    host: IPAddress, port: int, timeout: float
-) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+class Stream:
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        self.reader = reader
+        self.writer = writer
+
+    async def readexactly(self, n: int) -> bytes:
+        return await self.reader.readexactly(n)
+
+    def write(self, data: bytes) -> None:
+        self.writer.write(data)
+
+    async def drain(self) -> None:
+        await self.writer.drain()
+
+    async def close(self) -> None:
+        self.writer.close()
+        await self.writer.wait_closed()
+
+
+async def tcp_connect(host: IPAddress, port: int, timeout: float) -> Stream:
     try:
-        return await asyncio.wait_for(asyncio.open_connection(str(host), port), timeout)
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(str(host), port), timeout
+        )
+        return Stream(reader, writer)
     except TimeoutError as e:
         raise ConnectionFailed("timeout", host, port) from e
     except OSError as e:
