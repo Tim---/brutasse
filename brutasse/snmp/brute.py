@@ -4,7 +4,7 @@ from typing import AsyncIterable
 
 import progressbar
 
-from ..scan.ip import udp_scan
+from ..scan import ip_udp_scan
 from ..utils import IPAddress
 from .scan import get_v2c_community, make_v2c_request
 
@@ -24,6 +24,6 @@ def pkt_gen(ips: list[IPAddress], communities: list[str]):
 async def brute(
     ips: list[IPAddress], communities: list[str]
 ) -> AsyncIterable[tuple[IPAddress, int, str]]:
-    async for ip, port, data in udp_scan(pkt_gen(ips, communities)):
+    async for ip, port, data in ip_udp_scan(pkt_gen(ips, communities)):
         community = get_v2c_community(data)
         yield ip, port, community

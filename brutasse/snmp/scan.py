@@ -21,7 +21,7 @@ from ..asn1.snmp import (
     VarBind,
     Version,
 )
-from ..scan import zmap
+from ..scan import net_udp_scan
 
 T = TypeVar("T")
 
@@ -142,7 +142,7 @@ def parse_v3_vendor(raw: bytes) -> Optional[int]:
 async def snmp_scan_common(
     ranges: list[IPv4Network], rate: int, payload: bytes, decoder: Callable[[bytes], T]
 ) -> AsyncIterator[tuple[IPv4Address, T]]:
-    scan = zmap.udp_scan(ranges, rate, port=161, payload=payload)
+    scan = net_udp_scan(ranges, rate, port=161, payload=payload)
     async for saddr, data in scan:
         try:
             decoded = decoder(data)
