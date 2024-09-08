@@ -19,3 +19,6 @@ dependencies = [
 
 [project.scripts]
 brutasse = "brutasse.cli:cli"
+
+[tool.setuptools]
+packages = ["brutasse"]
