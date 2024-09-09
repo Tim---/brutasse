@@ -4,9 +4,9 @@ from typing import AsyncIterable
 
 import progressbar
 
-from ..scan import ip_udp_scan
-from ..utils import IPAddress
-from .scan import get_v2c_community, make_v2c_request
+from brutasse.scan import ip_udp_scan
+from brutasse.snmp.scan import get_v2c_community, make_v2c_request
+from brutasse.utils import IPAddress
 
 
 def pkt_gen(ips: list[IPAddress], communities: list[str]):

@@ -3,8 +3,8 @@
 import asyncio
 import ipaddress
 
-from ..utils import IPAddress, tcp_connect
-from .proto import Msg, Notification, Open
+from brutasse.bgp.proto import Msg, Notification, Open
+from brutasse.utils import IPAddress, tcp_connect
 
 
 async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:

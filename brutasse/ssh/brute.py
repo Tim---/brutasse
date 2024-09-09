@@ -6,8 +6,8 @@ import asyncio
 import asyncssh
 from termcolor import colored
 
-from ..parallel import progressbar_execute
-from ..utils import ConnectionFailed, ips_from_file
+from brutasse.parallel import progressbar_execute
+from brutasse.utils import ConnectionFailed, ips_from_file
 
 
 async def ssh_brute(ip: str, port: int, username: str, password: str):

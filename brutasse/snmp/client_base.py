@@ -7,9 +7,9 @@ from typing import Optional, Self
 
 import anyio
 
-from ..asn1.base import Integer, Null, ObjectIdentifier, OctetString
-from ..asn1.ber import ber_build, ber_parse
-from ..asn1.snmp import (
+from brutasse.asn1.base import Integer, Null, ObjectIdentifier, OctetString
+from brutasse.asn1.ber import ber_build, ber_parse
+from brutasse.asn1.snmp import (
     ErrorStatus,
     GetNextRequestPDU,
     GetRequestPDU,

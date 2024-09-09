@@ -5,7 +5,7 @@ import struct
 from dataclasses import dataclass
 from typing import Any, Self
 
-from ..utils import Stream
+from brutasse.utils import Stream
 
 
 class Msg:

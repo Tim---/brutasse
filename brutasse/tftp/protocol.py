@@ -10,8 +10,16 @@ from typing import Optional
 import anyio
 from anyio.abc import ConnectedUDPSocket
 
-from ..udp import Addr, ConnectedUdpServerHandler, ConnectedUdpServerProtocol
-from .packet import Ack, Data, Error, ErrorCode, Msg, ReadRequest, WriteRequest
+from brutasse.tftp.packet import (
+    Ack,
+    Data,
+    Error,
+    ErrorCode,
+    Msg,
+    ReadRequest,
+    WriteRequest,
+)
+from brutasse.udp import Addr, ConnectedUdpServerHandler, ConnectedUdpServerProtocol
 
 
 class Common:

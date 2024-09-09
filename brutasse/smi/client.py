@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from ..utils import Stream
-from .proto import (
+from brutasse.smi.proto import (
     CapabilitiesReq,
     CapabilitiesResp,
     ConfigBackupReqResp,
@@ -11,6 +10,7 @@ from .proto import (
     TlvRemote,
     TlvSeq,
 )
+from brutasse.utils import Stream
 
 
 class IbdClient:

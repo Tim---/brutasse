@@ -4,8 +4,8 @@ import asyncio
 
 from anyio import create_connected_udp_socket
 
-from ..utils import IPAddress
-from .packet import Data, Error, ErrorCode, Msg, ReadRequest
+from brutasse.tftp.packet import Data, Error, ErrorCode, Msg, ReadRequest
+from brutasse.utils import IPAddress
 
 
 async def enumerate_files(

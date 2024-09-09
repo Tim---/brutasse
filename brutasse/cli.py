@@ -13,15 +13,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from brutasse.bgp.info import bgp_open_info
-
-from .msf import Metasploit, Note, Service
-from .parallel import progressbar_execute
-from .snmp.brute import brute
-from .snmp.client import get_sys_info
-from .snmp.scan import scan_v1, scan_v2c, scan_v3
-from .tftp.enum import enumerate_files
-from .tftp.scan import tftp_scan
-from .utils import ConnectionFailed, coro
+from brutasse.msf import Metasploit, Note, Service
+from brutasse.parallel import progressbar_execute
+from brutasse.snmp.brute import brute
+from brutasse.snmp.client import get_sys_info
+from brutasse.snmp.scan import scan_v1, scan_v2c, scan_v3
+from brutasse.tftp.enum import enumerate_files
+from brutasse.tftp.scan import tftp_scan
+from brutasse.utils import ConnectionFailed, coro
 
 
 async def do_scan(

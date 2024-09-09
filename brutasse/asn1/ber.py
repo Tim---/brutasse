@@ -3,7 +3,7 @@
 from types import GenericAlias, UnionType
 from typing import Optional, TypeVar, overload
 
-from .base import (
+from brutasse.asn1.base import (
     BaseType,
     Identifier,
     Integer,
