@@ -17,6 +17,15 @@ T = TypeVar("T")
 async def parallel_execute(
     coros: Iterable[Coroutine[None, None, T]], parallelism: int
 ) -> AsyncIterator[asyncio.Task[T]]:
+    """Execute several coroutines concurrently.
+
+    This is similar to :func:`asyncio.gather`, but with a maximum number of
+    in-flight requests.
+
+    :param coros: coroutines to run
+    :param parallelism: max number of coroutines running at the same time
+    :return: an iterator of terminated tasks
+    """
     dltasks: set[asyncio.Task[T]] = set()
     it = iter(coros)
     try:
@@ -37,7 +46,7 @@ async def parallel_execute(
             yield d
 
 
-class MyProgressBar(progressbar.ProgressBar):
+class _MyProgressBar(progressbar.ProgressBar):
     OK = 0
     ERROR = 1
     PENDING = 2
@@ -71,7 +80,16 @@ class MyProgressBar(progressbar.ProgressBar):
 async def progressbar_execute(
     coros: Collection[Coroutine[None, None, T]], parallelism: int
 ) -> AsyncIterator[asyncio.Task[T]]:
-    with MyProgressBar(len(coros)) as bar:
+    """Execute several coroutines concurrently with progress indication.
+
+    This function calls :func:`parallel_execute`, with a progressbar.
+    It allows the user to see the number of pending/successful/failed taks.
+
+    :param coros: coroutines to run
+    :param parallelism: max number of coroutines running at the same time
+    :return: an iterator of terminated tasks
+    """
+    with _MyProgressBar(len(coros)) as bar:
         async for fut in parallel_execute(coros, parallelism):
             bar.move(bar.PENDING, bar.OK if fut.exception() is None else bar.ERROR)
             yield fut
