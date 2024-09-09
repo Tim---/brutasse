@@ -260,14 +260,24 @@ Q = TypeVar("Q", bound=BaseType)
 
 
 @overload
-def ber_parse(raw: bytes, cls: type[Q]) -> Q: ...
+def ber_parse(data: bytes, cls: type[Q]) -> Q: ...
 
 
-def ber_parse(raw: bytes, cls: UnionType | GenericAlias | type[T]) -> T:
-    (tag,) = parse_ber_tags(raw)
+def ber_parse(data: bytes, cls: UnionType | GenericAlias | type[T]) -> T:
+    """Parse a BER encoded bytes into an ASN.1 value.
+
+    :param data: the BER encoded bytes
+    :param cls: the ASN.1 class to decode
+    :return: the decoded ASN.1 value
+    """
+    (tag,) = parse_ber_tags(data)
     return parse(tag, cls)
 
 
 def ber_build(obj: U) -> bytes:
+    """Convert an ASN.1 value using BER encoding.
+
+    :param obj: the ASN.1 value to encode
+    :return: the BER encoded bytes"""
     tag = build(obj)
     return build_ber_tags([tag])

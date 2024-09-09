@@ -13,3 +13,9 @@ scan
 .. automodule:: brutasse.scan
    :members:
 
+asn1
+----
+
+.. automodule:: brutasse.asn1
+   :members:
+

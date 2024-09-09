@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from brutasse.asn1.snmp import Version
 from brutasse.snmp.client_base import SnmpBase
+from brutasse.snmp.packet import Version
 
 
 class Snmpv2c(SnmpBase):

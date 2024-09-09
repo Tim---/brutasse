@@ -5,9 +5,16 @@ from collections.abc import AsyncIterator, Callable
 from ipaddress import IPv4Address, IPv4Network
 from typing import Optional, TypeVar
 
-from brutasse.asn1.base import Integer, Null, ObjectIdentifier, OctetString
-from brutasse.asn1.ber import ber_build, ber_parse
-from brutasse.asn1.snmp import (
+from brutasse.asn1 import (
+    Integer,
+    Null,
+    ObjectIdentifier,
+    OctetString,
+    ber_build,
+    ber_parse,
+)
+from brutasse.scan import net_udp_scan
+from brutasse.snmp.packet import (
     ErrorStatus,
     GetRequestPDU,
     HeaderData,
@@ -21,7 +28,6 @@ from brutasse.asn1.snmp import (
     VarBind,
     Version,
 )
-from brutasse.scan import net_udp_scan
 
 T = TypeVar("T")
 

@@ -49,11 +49,13 @@ def identifier(tag_class: TagClass, number: int):
 @dataclass
 @identifier(TagClass.UNIVERSAL, 16)
 class Sequence(ConstructedType):
-    pass
+    """An ASN.1 SEQUENCE value."""
 
 
 @identifier(TagClass.UNIVERSAL, 6)
 class ObjectIdentifier(tuple[int, ...], PrimitiveType):
+    """An ASN.1 OBJECT IDENTIFIER value."""
+
     @classmethod
     def from_string(cls, s: str) -> Self:
         return cls(list(map(int, s.split("."))))
@@ -64,14 +66,20 @@ class ObjectIdentifier(tuple[int, ...], PrimitiveType):
 
 @identifier(TagClass.UNIVERSAL, 2)
 class Integer(int, PrimitiveType):
+    """An ASN.1 INTEGER value."""
+
     pass
 
 
 @identifier(TagClass.UNIVERSAL, 4)
 class OctetString(bytes, PrimitiveType):
+    """An ASN.1 OCTET STRING value."""
+
     pass
 
 
 @identifier(TagClass.UNIVERSAL, 5)
 class Null(PrimitiveType):
+    """An ASN.1 NULL value."""
+
     pass
