@@ -7,8 +7,14 @@ from brutasse.bgp.proto import Msg, Notification, Open
 from brutasse.utils import IPAddress, tcp_connect
 
 
-async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:
-    stream = await tcp_connect(ip, port, timeout=timeout)
+async def bgp_open_info(address: IPAddress, port: int, timeout: int = 2) -> str:
+    """Get the ASN info of a BGP peer.
+
+    :param address: address of the host
+    :param port: TCP port
+    :param timeout: timeout for TCP connect/packet read
+    :return: a string describing the BGP info"""
+    stream = await tcp_connect(address, port, timeout=timeout)
     try:
         req = Open(
             version=4,
@@ -22,7 +28,7 @@ async def bgp_open_info(ip: IPAddress, port: int, timeout: int = 2) -> str:
         resp = await asyncio.wait_for(Msg.parse_stream(stream), timeout)
         match resp:
             case Open(asn=asn, bgp_id=bgp_id):
-                return f"{ip} asn={asn} id={bgp_id}"
+                return f"{address} asn={asn} id={bgp_id}"
             case Notification(code=6, subcode=5, data=b""):
                 raise ConnectionRefusedError(
                     "Peer returned Cease / Connection Rejected"

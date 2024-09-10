@@ -12,8 +12,7 @@ import click
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from brutasse import snmp
-from brutasse.bgp.info import bgp_open_info
+from brutasse import bgp, snmp
 from brutasse.msf import Metasploit, Note, Service
 from brutasse.parallel import progressbar_execute
 from brutasse.tftp.enum import enumerate_files
@@ -80,7 +79,7 @@ async def bgp_info(workspace: str) -> None:
         addresses = (
             (ip_address(service.host.address), service.port) for service in services
         )
-        coros = [bgp_open_info(ip, port) for ip, port in addresses]
+        coros = [bgp.bgp_open_info(ip, port) for ip, port in addresses]
         ignore = (
             ConnectionFailed
             | asyncio.IncompleteReadError

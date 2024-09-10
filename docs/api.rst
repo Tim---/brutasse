@@ -19,6 +19,12 @@ asn1
 .. automodule:: brutasse.asn1
    :members:
 
+bgp
+----
+
+.. automodule:: brutasse.bgp
+   :members:
+
 snmp
 ----
 
