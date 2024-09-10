@@ -56,13 +56,16 @@ def cli() -> None:
 @click.option("--workspace", type=str, default="default")
 @coro
 async def tftp_enum(workspace: str) -> None:
-    files = ["running-config", "startup-config"]
+    filenames = ["running-config", "startup-config"]
     with Metasploit(workspace) as db:
         services = db.get_services_by_port("udp", 69)
         addresses = (
             (ip_address(service.host.address), service.port) for service in services
         )
-        coros = [tftp.enumerate_files(ip, port, files=files) for ip, port in addresses]
+        coros = [
+            tftp.enumerate_files(ip, port, filenames=filenames)
+            for ip, port in addresses
+        ]
         async for ip, filenames in parallel_helper(coros, 100, ignore=TimeoutError):
             for filename in filenames:
                 print(ip, filename)
@@ -147,7 +150,7 @@ def scan() -> None:
     pass
 
 
-@scan.command(name="snmpv1")
+@scan.command("snmpv1")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.option("--community", type=str, default="public")
@@ -160,7 +163,7 @@ async def scan_snmpv1(
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command(name="snmpv2c")
+@scan.command("snmpv2c")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.option("--community", type=str, default="public")
@@ -173,7 +176,7 @@ async def scan_snmpv2c(
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command(name="snmpv3")
+@scan.command("snmpv3")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
@@ -183,7 +186,7 @@ async def scan_snmpv3(network: list[IPv4Network], rate: int, workspace: str) -> 
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command(name="tftp")
+@scan.command("tftp")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
