@@ -17,8 +17,15 @@ def as_string(value: Optional[ObjectSyntax]) -> str:
 
 
 async def get_sys_info(
-    ip: str, port: int, community: str
+    address: str, port: int, community: str
 ) -> tuple[str, int, dict[str, str]]:
+    """Retrieve the system information.
+
+    :param address: IP/hostname of the target
+    :param port: UDP port
+    :param community: SNMP community
+    :return: a tuple (IP, port, attributes)
+    """
     columns = {
         1: "description",
         2: "object_id",
@@ -27,10 +34,10 @@ async def get_sys_info(
         6: "location",
     }
     oids = [ObjectIdentifier.from_string(f"1.3.6.1.2.1.1.{i}.0") for i in columns]
-    async with Snmpv2c(ip, port, community) as client:
+    async with Snmpv2c(address, port, community) as client:
         values = await client.get(oids)
         res = {
             column: as_string(value) for column, value in zip(columns.values(), values)
         }
 
-        return ip, port, res
+        return address, port, res

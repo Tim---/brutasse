@@ -146,9 +146,12 @@ def parse_v3_vendor(raw: bytes) -> Optional[int]:
 
 
 async def snmp_scan_common(
-    ranges: list[IPv4Network], rate: int, payload: bytes, decoder: Callable[[bytes], T]
+    networks: list[IPv4Network],
+    rate: int,
+    payload: bytes,
+    decoder: Callable[[bytes], T],
 ) -> AsyncIterator[tuple[IPv4Address, T]]:
-    scan = net_udp_scan(ranges, rate, port=161, payload=payload)
+    scan = net_udp_scan(networks, rate, port=161, payload=payload)
     async for saddr, data in scan:
         try:
             decoded = decoder(data)
@@ -158,20 +161,53 @@ async def snmp_scan_common(
 
 
 def scan_v1(
-    ranges: list[IPv4Network], rate: int, community: str
+    networks: list[IPv4Network], rate: int, community: str
 ) -> AsyncIterator[tuple[IPv4Address, str]]:
-    return snmp_scan_common(ranges, rate, make_v1_request(community), get_v1_community)
+    """Scan a network for SNMPv1 hosts.
+
+    This function performs a fast scan of IPv4 networks.
+    This function will only return servers that support SNMPv1 and allow the
+    given community.
+
+    :param networks: networks to scan
+    :param rate: sending rate in pps
+    :param community: SNMP community to scan
+    :return: an iterator of discovered (IP, community)
+    """
+    return snmp_scan_common(
+        networks, rate, make_v1_request(community), get_v1_community
+    )
 
 
 def scan_v2c(
-    ranges: list[IPv4Network], rate: int, community: str
+    networks: list[IPv4Network], rate: int, community: str
 ) -> AsyncIterator[tuple[IPv4Address, str]]:
+    """Scan a network for SNMPv2 hosts.
+
+    This function performs a fast scan of IPv4 networks.
+    This function will only return servers that support SNMPv2 and allow the
+    given community.
+
+    :param networks: networks to scan
+    :param rate: sending rate in pps
+    :param community: SNMP community to scan
+    :return: an iterator of discovered (IP, community)
+    """
     return snmp_scan_common(
-        ranges, rate, make_v2c_request(community), get_v2c_community
+        networks, rate, make_v2c_request(community), get_v2c_community
     )
 
 
 def scan_v3(
-    ranges: list[IPv4Network], rate: int
+    networks: list[IPv4Network], rate: int
 ) -> AsyncIterator[tuple[IPv4Address, Optional[int]]]:
-    return snmp_scan_common(ranges, rate, make_v3_request(), parse_v3_vendor)
+    """Scan a network for SNMPv3 hosts.
+
+    This function performs a fast scan of IPv4 networks.
+    Note that any hosts that supports SNMPv3 must answer to a probe packet.
+
+    :param networks: networks to scan
+    :param rate: sending rate in pps
+    :return: an iterator of discovered (IP, PEN)
+    """
+    return snmp_scan_common(networks, rate, make_v3_request(), parse_v3_vendor)

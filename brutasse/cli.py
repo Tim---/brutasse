@@ -12,12 +12,10 @@ import click
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
+from brutasse import snmp
 from brutasse.bgp.info import bgp_open_info
 from brutasse.msf import Metasploit, Note, Service
 from brutasse.parallel import progressbar_execute
-from brutasse.snmp.brute import brute
-from brutasse.snmp.client import get_sys_info
-from brutasse.snmp.scan import scan_v1, scan_v2c, scan_v3
 from brutasse.tftp.enum import enumerate_files
 from brutasse.tftp.scan import tftp_scan
 from brutasse.utils import ConnectionFailed, coro
@@ -101,7 +99,9 @@ async def snmp_brute(workspace: str) -> None:
     with Metasploit(workspace) as db:
         services = db.get_services_by_port("udp", 161)
         ips = [ip_address(service.host.address) for service in services]
-        async for ip, port, community in brute(ips, communities):
+        async for ip, port, community in snmp.bruteforce_communities_v2c(
+            ips, communities
+        ):
             host = db.get_or_create_host(str(ip))
             service = db.get_or_create_service(host, "udp", 161)
             note = db.get_or_create_note(service, "brutasse.snmp.community")
@@ -136,7 +136,7 @@ def get_authenticated_snmp_services(db: Metasploit):
 async def snmp_info(workspace: str) -> None:
     with Metasploit(workspace) as db:
         coros = [
-            asyncio.wait_for(get_sys_info(ip, port, community), 5)
+            asyncio.wait_for(snmp.get_sys_info(ip, port, community), 5)
             for ip, port, community in get_authenticated_snmp_services(db)
         ]
         async for ip, port, res in parallel_helper(
@@ -159,7 +159,7 @@ def scan() -> None:
 async def snmpv1(
     network: list[IPv4Network], rate: int, workspace: str, community: str
 ) -> None:
-    scan_it = scan_v1(network, rate, community)
+    scan_it = snmp.scan_v1(network, rate, community)
     await do_scan(workspace, 161, scan_it)
 
 
@@ -172,7 +172,7 @@ async def snmpv1(
 async def snmpv2c(
     network: list[IPv4Network], rate: int, workspace: str, community: str
 ) -> None:
-    scan_it = scan_v2c(network, rate, community)
+    scan_it = snmp.scan_v2c(network, rate, community)
     await do_scan(workspace, 161, scan_it)
 
 
@@ -182,7 +182,7 @@ async def snmpv2c(
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
 @coro
 async def snmpv3(network: list[IPv4Network], rate: int, workspace: str) -> None:
-    scan_it = scan_v3(network, rate)
+    scan_it = snmp.scan_v3(network, rate)
     await do_scan(workspace, 161, scan_it)
 
 
