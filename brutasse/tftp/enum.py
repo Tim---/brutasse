@@ -9,18 +9,28 @@ from brutasse.utils import IPAddress
 
 
 async def enumerate_files(
-    ip: IPAddress,
+    address: IPAddress,
     port: int,
-    files: list[str],
-    timeout: int = 1,
+    filenames: list[str],
+    timeout: float = 1.0,
     retries: int = 1,
     mode: str = "netascii",
 ) -> tuple[IPAddress, list[str]]:
+    """Enumerate files over TFTP.
+
+    :param address: IP address of the target
+    :param port: UDP port
+    :param files: list of filenames to try
+    :param timeout: time to wait for each response
+    :param retries: number of retries for each request
+    :param mode: TFTP mode
+    :return: an pair (address, filenames)
+    """
     res: list[str] = []
     async with await create_connected_udp_socket(
-        remote_host=ip, remote_port=port
+        remote_host=address, remote_port=port
     ) as udp:
-        for filename in files:
+        for filename in filenames:
             for _ in range(retries + 1):
                 msg = ReadRequest(filename=filename, mode=mode)
                 await udp.send(msg.build())
@@ -32,7 +42,7 @@ async def enumerate_files(
                 resp = Msg.parse(raw)
                 break
             else:
-                raise TimeoutError(f"Max retries exceeded for {ip}")
+                raise TimeoutError(f"Max retries exceeded for {address}")
 
             match resp:
                 case Error():
@@ -43,4 +53,4 @@ async def enumerate_files(
                     await udp.send(msg.build())
                 case _:
                     raise NotImplementedError(f"Unexpected response {resp}")
-    return ip, res
+    return address, res

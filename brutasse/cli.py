@@ -12,11 +12,9 @@ import click
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from brutasse import bgp, snmp
+from brutasse import bgp, snmp, tftp
 from brutasse.msf import Metasploit, Note, Service
 from brutasse.parallel import progressbar_execute
-from brutasse.tftp.enum import enumerate_files
-from brutasse.tftp.scan import tftp_scan
 from brutasse.utils import ConnectionFailed, coro
 
 
@@ -64,7 +62,7 @@ async def tftp_enum(workspace: str) -> None:
         addresses = (
             (ip_address(service.host.address), service.port) for service in services
         )
-        coros = [enumerate_files(ip, port, files=files) for ip, port in addresses]
+        coros = [tftp.enumerate_files(ip, port, files=files) for ip, port in addresses]
         async for ip, filenames in parallel_helper(coros, 100, ignore=TimeoutError):
             for filename in filenames:
                 print(ip, filename)
@@ -149,47 +147,47 @@ def scan() -> None:
     pass
 
 
-@scan.command()
+@scan.command(name="snmpv1")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.option("--community", type=str, default="public")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
 @coro
-async def snmpv1(
+async def scan_snmpv1(
     network: list[IPv4Network], rate: int, workspace: str, community: str
 ) -> None:
     scan_it = snmp.scan_v1(network, rate, community)
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command()
+@scan.command(name="snmpv2c")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.option("--community", type=str, default="public")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
 @coro
-async def snmpv2c(
+async def scan_snmpv2c(
     network: list[IPv4Network], rate: int, workspace: str, community: str
 ) -> None:
     scan_it = snmp.scan_v2c(network, rate, community)
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command()
+@scan.command(name="snmpv3")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
 @coro
-async def snmpv3(network: list[IPv4Network], rate: int, workspace: str) -> None:
+async def scan_snmpv3(network: list[IPv4Network], rate: int, workspace: str) -> None:
     scan_it = snmp.scan_v3(network, rate)
     await do_scan(workspace, 161, scan_it)
 
 
-@scan.command()
+@scan.command(name="tftp")
 @click.option("--rate", type=int, default=10000)
 @click.option("--workspace", type=str, default="default")
 @click.argument("network", type=IPv4Network, nargs=-1, required=True)
 @coro
-async def tftp(network: list[IPv4Network], rate: int, workspace: str) -> None:
-    scan_it = tftp_scan(network, rate)
+async def scan_tftp(network: list[IPv4Network], rate: int, workspace: str) -> None:
+    scan_it = tftp.tftp_scan(network, rate)
     await do_scan(workspace, 69, scan_it)

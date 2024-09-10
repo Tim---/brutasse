@@ -9,10 +9,15 @@ from brutasse.tftp.packet import Msg, ReadRequest
 
 
 async def tftp_scan(
-    ranges: list[IPv4Network], rate: int
+    networks: list[IPv4Network], rate: int
 ) -> AsyncIterator[tuple[IPv4Address, Msg]]:
+    """Scan a list of networks for TFTP servers.
+
+    :param networks: list of IPv4 networks to scan
+    :param rate: sending rate in pps
+    :return: an iterator of (address, response_msg)"""
     req = ReadRequest(filename="iamafilename", mode="octet").build()
-    async for saddr, data in net_udp_scan(ranges, rate, port=69, payload=req):
+    async for saddr, data in net_udp_scan(networks, rate, port=69, payload=req):
         try:
             pkt = Msg.parse(data)
             yield saddr, pkt

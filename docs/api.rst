@@ -30,3 +30,9 @@ snmp
 
 .. automodule:: brutasse.snmp
    :members:
+
+tftp
+----
+
+.. automodule:: brutasse.tftp
+   :members:
