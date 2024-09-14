@@ -6,8 +6,8 @@ import errno
 import functools
 import resource
 from collections.abc import Callable, Coroutine, Iterable
-from ipaddress import IPv4Address, IPv6Address, IPv6Network
-from typing import ParamSpec, TextIO, TypeVar
+from ipaddress import IPv4Address, IPv6Address, IPv6Network, ip_address
+from typing import NamedTuple, ParamSpec, TextIO, TypeVar
 
 from pyroute2 import NDB
 
@@ -114,3 +114,34 @@ def ipv6_to_ip(ip: IPv6Address) -> IPAddress:
         return IPv4Address(int(ip) - int(mapped.network_address))
     else:
         return ip
+
+
+IP = TypeVar("IP", IPv4Address, IPv6Address)
+
+
+class IPv4Endpoint(NamedTuple):
+    address: IPv4Address
+    port: int
+
+    def __str__(self):
+        return f"{self.address}:{self.port}"
+
+
+class IPv6Endpoint(NamedTuple):
+    address: IPv6Address
+    port: int
+
+    def __str__(self):
+        return f"[{self.address}]:{self.port}"
+
+
+IPEndpoint = IPv4Endpoint | IPv6Endpoint
+
+
+def ip_endpoint(address: str, port: int) -> IPEndpoint:
+    addr = ip_address(address)
+    match addr:
+        case IPv4Address():
+            return IPv4Endpoint(addr, port)
+        case IPv6Address():
+            return IPv6Endpoint(addr, port)
