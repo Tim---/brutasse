@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 from brutasse import bgp, snmp, tftp
 from brutasse.msf import Metasploit, Note, Service
 from brutasse.parallel import progressbar_execute
-from brutasse.utils import ConnectionFailed, coro
+from brutasse.utils import ConnectionFailed, IPAddress, coro
 
 
 async def do_scan(
@@ -62,13 +62,15 @@ async def tftp_enum(workspace: str) -> None:
         addresses = (
             (ip_address(service.host.address), service.port) for service in services
         )
-        coros = [
-            tftp.enumerate_files(ip, port, filenames=filenames)
-            for ip, port in addresses
-        ]
-        async for ip, filenames in parallel_helper(coros, 100, ignore=TimeoutError):
-            for filename in filenames:
-                print(ip, filename)
+
+        async def inner(ip: IPAddress, port: int) -> tuple[IPAddress, int, list[str]]:
+            found = await tftp.enumerate_files(ip, port, filenames=filenames)
+            return ip, port, found
+
+        coros = [inner(ip, port) for ip, port in addresses]
+        async for ip, port, found in parallel_helper(coros, 100, ignore=TimeoutError):
+            for filename in found:
+                print(ip, port, filename)
 
 
 @cli.command()
@@ -80,15 +82,22 @@ async def bgp_info(workspace: str) -> None:
         addresses = (
             (ip_address(service.host.address), service.port) for service in services
         )
-        coros = [bgp.bgp_open_info(ip, port) for ip, port in addresses]
+
+        async def inner(
+            ip: IPAddress, port: int
+        ) -> tuple[IPAddress, int, int, IPv4Address]:
+            asn, bgp_id = await bgp.bgp_open_info(ip, port)
+            return ip, port, asn, bgp_id
+
+        coros = [inner(ip, port) for ip, port in addresses]
         ignore = (
             ConnectionFailed
             | asyncio.IncompleteReadError
             | ConnectionResetError
             | TimeoutError
         )
-        async for res in parallel_helper(coros, 100, ignore=ignore):
-            print(res)
+        async for ip, port, asn, bgp_id in parallel_helper(coros, 100, ignore=ignore):
+            print(ip, port, asn, bgp_id)
 
 
 @cli.command()
@@ -135,8 +144,15 @@ def get_authenticated_snmp_services(db: Metasploit):
 @coro
 async def snmp_info(workspace: str) -> None:
     with Metasploit(workspace) as db:
+
+        async def inner(
+            ip: str, port: int, community: str
+        ) -> tuple[str, int, dict[str, str]]:
+            infos = await asyncio.wait_for(snmp.get_sys_info(ip, port, community), 5)
+            return ip, port, infos
+
         coros = [
-            asyncio.wait_for(snmp.get_sys_info(ip, port, community), 5)
+            inner(ip, port, community)
             for ip, port, community in get_authenticated_snmp_services(db)
         ]
         async for ip, port, res in parallel_helper(

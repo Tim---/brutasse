@@ -15,7 +15,7 @@ async def enumerate_files(
     timeout: float = 1.0,
     retries: int = 1,
     mode: str = "netascii",
-) -> tuple[IPAddress, list[str]]:
+) -> list[str]:
     """Enumerate files over TFTP.
 
     :param address: IP address of the target
@@ -24,7 +24,7 @@ async def enumerate_files(
     :param timeout: time to wait for each response
     :param retries: number of retries for each request
     :param mode: TFTP mode
-    :return: an pair (address, filenames)
+    :return: a list of discovered files
     """
     res: list[str] = []
     async with await create_connected_udp_socket(
@@ -53,4 +53,4 @@ async def enumerate_files(
                     await udp.send(msg.build())
                 case _:
                     raise NotImplementedError(f"Unexpected response {resp}")
-    return address, res
+    return res

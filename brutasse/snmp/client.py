@@ -16,15 +16,16 @@ def as_string(value: Optional[ObjectSyntax]) -> str:
             raise NotImplementedError(f"Unsupported type {value!r}")
 
 
-async def get_sys_info(
-    address: str, port: int, community: str
-) -> tuple[str, int, dict[str, str]]:
+async def get_sys_info(address: str, port: int, community: str) -> dict[str, str]:
     """Retrieve the system information.
+
+    This retrieves several parameters of the System Group, as defined in
+    RFC-1213.
 
     :param address: IP/hostname of the target
     :param port: UDP port
     :param community: SNMP community
-    :return: a tuple (IP, port, attributes)
+    :return: a dictionnary of the system infos
     """
     columns = {
         1: "description",
@@ -36,8 +37,6 @@ async def get_sys_info(
     oids = [ObjectIdentifier.from_string(f"1.3.6.1.2.1.1.{i}.0") for i in columns]
     async with Snmpv2c(address, port, community) as client:
         values = await client.get(oids)
-        res = {
+        return {
             column: as_string(value) for column, value in zip(columns.values(), values)
         }
-
-        return address, port, res
