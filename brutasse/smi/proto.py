@@ -117,7 +117,7 @@ class TlvRemote(Tlv, type_id=3):
 
 
 @dataclass
-class SelfConfigBackupReq(Msg, from_=From.IBD_CLI, type_id=8):
+class BackupReq(Msg, from_=From.IBD_CLI, type_id=8):
     tlvs: list[Tlv]
 
     def build(self) -> bytes:
@@ -140,7 +140,7 @@ class SelfConfigBackupReq(Msg, from_=From.IBD_CLI, type_id=8):
 
 
 @dataclass
-class ConfigBackupReqResp(Msg, from_=From.IBD_CLI, type_id=9):
+class BackupDone(Msg, from_=From.IBD_CLI, type_id=9):
     result: int  # 1 = Success, 2 = Failure
 
     def build(self) -> bytes:
@@ -165,6 +165,28 @@ class CapabilitiesResp(Msg, from_=From.IBC_SERV, type_id=3):
     @classmethod
     def parse(cls, raw: bytes) -> Self:
         return cls(*struct.unpack("!II", raw))
+
+
+@dataclass
+class BackupResp(Msg, from_=From.IBC_CLI, type_id=9):
+    hostname: str
+    mac: bytes
+    hash_: bytes  # md5 hash of the startup-config
+
+    def build(self) -> bytes:
+        raise NotImplementedError
+
+    @classmethod
+    def parse(cls, raw: bytes) -> Self:
+        # print(raw)
+        hostname, mac, ip, pad1, hash_, pad2, status = struct.unpack(
+            "!40s6sIH16sII", raw
+        )
+        assert ip == 0
+        assert pad1 == 0
+        assert pad2 == 0
+        assert status == 1
+        return cls(hostname.decode().rstrip("\0"), mac, hash_)
 
 
 @dataclass

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 from brutasse.smi.proto import (
+    BackupDone,
+    BackupReq,
     CapabilitiesReq,
     CapabilitiesResp,
-    ConfigBackupReqResp,
     Pkt,
-    SelfConfigBackupReq,
     TlvLocal,
     TlvRemote,
     TlvSeq,
@@ -18,7 +18,7 @@ class IbdClient:
         self.stream = stream
 
     async def get_capabilities(self):
-        req = Pkt(version=1, body=CapabilitiesReq(1, 0))
+        req = Pkt(version=0, body=CapabilitiesReq(1, 0))
         await req.build_stream(self.stream)
 
         resp = await Pkt.parse_stream(self.stream)
@@ -31,7 +31,7 @@ class IbdClient:
     async def backup_local(self):
         req = Pkt(
             version=0,
-            body=SelfConfigBackupReq(
+            body=BackupReq(
                 tlvs=[
                     TlvSeq(1, 0, bytes(6)),
                     TlvLocal("configure tftp-server nvram:startup-config"),
@@ -44,7 +44,7 @@ class IbdClient:
 
         # TODO: do the tftp get
 
-        req = Pkt(version=0, body=ConfigBackupReqResp(result=1))
+        req = Pkt(version=0, body=BackupDone(result=1))
         await req.build_stream(self.stream)
 
         # Note: the switch will connect back on port 4786 to send a response
@@ -54,7 +54,7 @@ class IbdClient:
 
         req = Pkt(
             version=0,
-            body=SelfConfigBackupReq(
+            body=BackupReq(
                 tlvs=[
                     TlvSeq(1, 0, bytes(6)),
                     TlvRemote(
