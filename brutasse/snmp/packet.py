@@ -3,7 +3,7 @@
 import enum
 from dataclasses import dataclass
 
-from brutasse.asn1.base import (
+from brutasse.asn1 import (
     Integer,
     Null,
     ObjectIdentifier,

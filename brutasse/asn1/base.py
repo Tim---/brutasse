@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import enum
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Self, TypeVar
 
 
 class TagClass(enum.IntEnum):
+    """An ASN.1 tag class."""
+
     UNIVERSAL = 0
     APPLICATION = 1
     CONTEXT = 2
@@ -37,7 +40,9 @@ class ConstructedType(BaseType):
 T = TypeVar("T", bound=BaseType)
 
 
-def identifier(tag_class: TagClass, number: int):
+def identifier(tag_class: TagClass, number: int) -> Callable[[type[T]], type[T]]:
+    """Change the implicit tagging on an ASN.1 type."""
+
     def wrap(cls: type[T]) -> type[T]:
         constructed = issubclass(cls, ConstructedType)
         cls.identifier = Identifier(tag_class, constructed, number)
@@ -72,7 +77,7 @@ class Integer(int, PrimitiveType):
     """An ASN.1 INTEGER value."""
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({super().__repr__()})"
+        return f"{self.__class__.__name__}({int(self)})"
 
 
 @identifier(TagClass.UNIVERSAL, 4)
