@@ -63,23 +63,29 @@ class ObjectIdentifier(tuple[int, ...], PrimitiveType):
     def __str__(self) -> str:
         return ".".join(map(str, self))
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__()})"
+
 
 @identifier(TagClass.UNIVERSAL, 2)
 class Integer(int, PrimitiveType):
     """An ASN.1 INTEGER value."""
 
-    pass
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__()})"
 
 
 @identifier(TagClass.UNIVERSAL, 4)
 class OctetString(bytes, PrimitiveType):
     """An ASN.1 OCTET STRING value."""
 
-    pass
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__()})"
 
 
 @identifier(TagClass.UNIVERSAL, 5)
 class Null(PrimitiveType):
     """An ASN.1 NULL value."""
 
-    pass
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
