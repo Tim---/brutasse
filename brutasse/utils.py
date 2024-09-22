@@ -7,7 +7,7 @@ import functools
 import resource
 from collections.abc import Callable, Coroutine, Iterable
 from ipaddress import IPv4Address, IPv6Address, IPv6Network, ip_address
-from typing import NamedTuple, ParamSpec, TextIO, TypeVar
+from typing import NamedTuple, Optional, ParamSpec, TextIO, TypeVar
 
 from pyroute2 import NDB
 
@@ -39,11 +39,14 @@ class Stream:
         await self.writer.wait_closed()
 
 
-async def tcp_connect(host: IPAddress, port: int, timeout: float) -> Stream:
+async def tcp_connect(
+    host: IPAddress, port: int, timeout: Optional[float] = None
+) -> Stream:
     try:
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(str(host), port), timeout
-        )
+        coro = asyncio.open_connection(str(host), port)
+        if timeout is not None:
+            coro = asyncio.wait_for(coro, timeout)
+        reader, writer = await coro
         return Stream(reader, writer)
     except TimeoutError as e:
         raise ConnectionFailed("timeout", host, port) from e
