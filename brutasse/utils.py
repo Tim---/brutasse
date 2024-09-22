@@ -81,6 +81,13 @@ def get_default_interface() -> str:
         return ndb.interfaces[ndb.routes["default"]["oif"]]["ifname"]
 
 
+def get_public_ip() -> IPAddress:
+    with NDB() as ndb:
+        ip = ip_address(ndb.routes["default"]["prefsrc"])
+        assert ip.is_global
+        return ip
+
+
 def argunparse(long_options: dict[str, str], positional: Iterable[str]):
     args: list[str] = []
     for k, v in long_options.items():

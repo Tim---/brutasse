@@ -5,6 +5,7 @@ from typing import Optional, Self, TypedDict
 
 class Route(TypedDict):
     oif: int
+    prefsrc: str
 
 class Interface(TypedDict):
     ifname: str

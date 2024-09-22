@@ -182,7 +182,10 @@ class TftpServerHandler(ConnectedUdpServerHandler, Common):
             case WriteRequest(filename, mode):
                 req = TftpWriteRequest(self, filename, mode)
             case _:
-                raise ValueError(f"Unexpected message {msg}")
+                await self.send_msg(
+                    Error(ErrorCode.UNKNOWN_TRANSFER_ID, "Unknown transfer ID.")
+                )
+                return
         await req.run()
 
 

@@ -172,6 +172,7 @@ class BackupResp(Msg, from_=From.IBC_CLI, type_id=9):
     hostname: str
     mac: bytes
     hash_: bytes  # md5 hash of the startup-config
+    status: bool
 
     def build(self) -> bytes:
         raise NotImplementedError
@@ -185,8 +186,7 @@ class BackupResp(Msg, from_=From.IBC_CLI, type_id=9):
         assert ip == 0
         assert pad1 == 0
         assert pad2 == 0
-        assert status == 1
-        return cls(hostname.decode().rstrip("\0"), mac, hash_)
+        return cls(hostname.decode().rstrip("\0"), mac, hash_, bool(status))
 
 
 @dataclass
